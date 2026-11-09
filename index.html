@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>氧心殿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#120a0c; --panel:rgba(28,12,16,.9); --panel2:#24121a; --line:rgba(234,179,8,.28);
+  --text:#f7efe2; --dim:#c4b29a; --red:#b91c1c; --gold:#eab308; --gold2:#fde68a; --jade:#34d399; --bad:#f87171;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%}
+button{font-family:inherit;color:inherit;cursor:pointer}
+.serif{font-family:"Noto Serif TC","Noto Sans TC",serif}
+#app{position:fixed;inset:0;overflow:hidden}
+/* 背景 */
+#bg{position:absolute;inset:0;transition:background .6s}
+#bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s}
+#bg img.on{opacity:1}
+#bg .shade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent 55%)}
+#bgLabel{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-family:"Noto Serif TC",serif;font-size:clamp(28px,6vw,64px);font-weight:900;letter-spacing:.3em;color:rgba(253,230,138,.13);pointer-events:none;white-space:nowrap}
+#flash{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:3}
+#flash.go{animation:flash 1.6s ease-out}
+@keyframes flash{0%{opacity:0}15%{opacity:.75}100%{opacity:0}}
+/* 立繪 */
+#chars{position:absolute;left:0;right:0;bottom:0;height:80%;display:flex;justify-content:center;align-items:flex-end;gap:2%;pointer-events:none;padding:0 4%}
+.char{height:100%;flex:0 1 30%;max-width:360px;display:flex;align-items:flex-end;justify-content:center;transition:filter .3s,transform .3s;filter:brightness(.5) saturate(.7);transform:translateY(8px)}
+.char.talk{filter:none;transform:none}
+.char img{max-height:100%;max-width:100%;object-fit:contain}
+.ph{width:100%;height:90%;position:relative;display:flex;align-items:flex-end;justify-content:center}
+.ph svg{height:100%;width:auto;max-width:100%}
+/* 上方列 */
+#top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;background:linear-gradient(180deg,rgba(0,0,0,.65),transparent);z-index:5}
+#chapWrap{flex:1;min-width:0;display:flex;gap:6px;align-items:center}
+.pill{display:inline-block;font-size:clamp(12px,1.7vw,15px);font-weight:700;background:rgba(0,0,0,.55);padding:4px 12px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line)}
+.pill:empty{display:none}
+#rankBox{color:var(--gold2)}
+#scoreBox{font-weight:900;font-size:clamp(14px,2vw,19px);color:var(--gold);background:rgba(0,0,0,.5);padding:4px 12px;border-radius:999px;border:1px solid rgba(234,179,8,.45);white-space:nowrap}
+.iconBtn{background:rgba(0,0,0,.5);border:1px solid var(--line);border-radius:10px;min-width:40px;height:38px;font-size:18px}
+/* 對話框 */
+#box{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);width:min(980px,calc(100% - 24px));
+  min-height:clamp(118px,22vh,190px);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:30px 22px 20px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:4;box-shadow:0 10px 40px rgba(0,0,0,.55)}
+#box::before{content:"";position:absolute;inset:5px;border:1px solid rgba(234,179,8,.15);border-radius:12px;pointer-events:none}
+#name{position:absolute;top:-17px;left:18px;font-family:"Noto Serif TC",serif;font-weight:900;font-size:clamp(15px,2.2vw,19px);padding:4px 16px;border-radius:8px;background:#444;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#name:empty{display:none}
+#text{font-size:clamp(17px,2.5vw,22px);line-height:1.75;min-height:3.5em;white-space:pre-wrap}
+#text.narr{color:#e9dcc6}
+#next{position:absolute;right:18px;bottom:10px;color:var(--gold);animation:bob 1s infinite;font-size:14px}
+@keyframes bob{50%{transform:translateY(4px)}}
+/* 覆蓋層 */
+.overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,3,5,.75);overflow-y:auto}
+.overlay.bottom{align-items:flex-end;background:linear-gradient(0deg,rgba(8,3,5,.6),transparent 60%);padding:0 12px calc(env(safe-area-inset-bottom) + 14px)}
+.overlay.bottom .card{width:min(980px,100%);max-height:66%;background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:16px 18px}
+body.ovBottom #box{visibility:hidden}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:22px;width:min(760px,100%);max-height:calc(100% - 8px);overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.opts{display:grid;grid-template-columns:1fr;gap:0 10px}
+@media (min-width:700px){ .opts.two{grid-template-columns:1fr 1fr} }
+.btn{display:block;width:100%;text-align:left;background:#331a22;border:2px solid #5a2f3a;border-radius:12px;padding:12px 16px;margin:7px 0;font-size:clamp(16px,2.3vw,19px);line-height:1.5;transition:transform .1s,background .15s,border-color .15s}
+.btn:active{transform:scale(.98)}
+.btn.sel{border-color:var(--gold);background:#4a2a12}
+.btn.primary{text-align:center;background:linear-gradient(135deg,#b91c1c,#a16207);border:none;font-weight:900}
+.btn.ghost{text-align:center;background:transparent}
+.btn[disabled]{opacity:.4}
+.qhead{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--gold);font-weight:900;flex-wrap:wrap}
+.tag{background:rgba(234,179,8,.14);border:1px solid rgba(234,179,8,.45);padding:2px 10px;border-radius:999px;font-size:14px}
+.qprompt{font-size:clamp(17px,2.5vw,21px);line-height:1.7;margin:6px 0 4px;white-space:pre-wrap}
+.qtip{color:var(--dim);font-size:14px;margin-bottom:4px}
+.qfig{display:block;margin:8px auto;max-width:100%;text-align:center}
+.qfig svg{max-width:100%;max-height:32vh;height:auto;width:auto;border-radius:12px}
+@media (min-width:700px) and (orientation:landscape){
+  .card.hasFig .qgrid{display:grid;grid-template-columns:1.05fr 1fr;gap:16px;align-items:start}
+  .card.hasFig .opts.two{grid-template-columns:1fr}
+  .card.hasFig .qfig svg{max-height:44vh}
+  .overlay.bottom .card.hasFig{max-height:76%}
+}
+.lab{display:inline-block;min-width:1.8em;font-weight:900;color:var(--gold2)}
+.seq{min-height:48px;border:2px dashed #6b3a46;border-radius:12px;padding:8px 12px;font-size:21px;font-weight:900;letter-spacing:.2em;margin:8px 0}
+/* 每列選一個（選字填空、推理表） */
+.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 0;border-bottom:1px dashed rgba(234,179,8,.2)}
+.mrow .ml{flex:1 1 auto;font-size:clamp(16px,2.3vw,19px)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{background:#331a22;border:2px solid #5a2f3a;border-radius:10px;padding:8px 14px;font-size:clamp(15px,2.2vw,18px);min-width:56px}
+.seg button.sel{border-color:var(--gold);background:#4a2a12;color:var(--gold2);font-weight:900}
+/* ＋／－ 表格 */
+.grid{display:grid;gap:4px;margin:10px 0;overflow-x:auto}
+.grid .h{font-size:14px;color:var(--dim);text-align:center;padding:4px 0}
+.grid .rh{font-weight:900;color:var(--gold2);display:flex;align-items:center;justify-content:center;font-size:18px}
+.grid button{height:46px;border-radius:8px;border:2px solid #5a2f3a;background:#331a22;font-size:22px;font-weight:900}
+.grid button.p{color:#86efac;border-color:#166534} .grid button.m{color:#fca5a5;border-color:#7f1d1d}
+.grid button.x{opacity:.5;cursor:default}
+.fb{margin-top:8px;font-weight:900;font-size:18px;min-height:1.4em}
+.fb.ok{color:var(--jade)} .fb.bad{color:var(--bad)}
+.dev{color:#22d3ee;font-size:13px;margin-top:6px;white-space:pre-wrap}
+/* 章節卡、標題 */
+.chapCard{text-align:center;animation:fade .5s;font-family:"Noto Serif TC",serif}
+.chapCard h1{font-size:clamp(26px,5.5vw,48px);margin:0 0 10px;letter-spacing:.12em;color:var(--gold2);text-shadow:0 0 24px rgba(234,179,8,.35)}
+.chapCard h2{font-size:clamp(20px,4vw,32px);margin:0;color:#f3e6cf;letter-spacing:.2em}
+.chapCard p{color:var(--dim);margin-top:26px;font-family:"Noto Sans TC",sans-serif}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}}
+.title h1{font-family:"Noto Serif TC",serif;font-size:clamp(44px,10vw,88px);margin:0;letter-spacing:.2em;text-align:center;color:var(--gold2);text-shadow:0 0 30px rgba(234,179,8,.4)}
+.title .subt{text-align:center;color:var(--dim);margin:4px 0 20px}
+label.f{display:block;color:var(--dim);font-size:15px;margin:10px 0 4px}
+input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border:2px solid #5a2f3a;background:#1a0b10;color:var(--text);font-family:inherit}
+.gender{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gender .btn{text-align:center}
+.gender .btn small{display:block;color:var(--dim);font-size:14px}
+/* 名帖（抽元素） */
+.tie{text-align:center;font-family:"Noto Serif TC",serif}
+.tie .sym{font-size:clamp(64px,14vw,120px);font-weight:900;line-height:1;margin:6px 0}
+.tie .nm{font-size:clamp(26px,5vw,40px);font-weight:900;letter-spacing:.2em}
+.tie .tr{font-family:"Noto Sans TC",sans-serif;color:#e9dcc6;font-size:clamp(15px,2.2vw,18px);line-height:1.7;margin:10px 0}
+.tie .tiers{display:inline-block;padding:2px 14px;border-radius:999px;border:1px solid var(--line);color:var(--gold2)}
+.series{font-size:clamp(13px,2vw,16px);color:var(--dim);margin:8px 0;letter-spacing:.05em}
+.series b{color:var(--gold2);font-size:1.25em}
+/* 出招 */
+.duelHead{font-family:"Noto Serif TC",serif;font-size:clamp(20px,3.5vw,28px);color:var(--gold2);font-weight:900}
+.eq{font-size:clamp(17px,2.6vw,22px);background:rgba(0,0,0,.3);border-radius:10px;padding:8px 12px;margin:8px 0;text-align:center}
+.rankUp{color:var(--jade);font-weight:900} .rankDown{color:var(--bad);font-weight:900}
+/* 成績卡、結局 */
+.result{text-align:center}
+.result .who{font-size:clamp(22px,4.5vw,34px);font-weight:900;margin:4px 0}
+.result .big{font-size:clamp(60px,15vw,120px);font-weight:900;color:var(--gold);line-height:1.1;text-shadow:0 0 30px rgba(234,179,8,.35)}
+.result .max{font-size:clamp(17px,3vw,22px);color:var(--dim)}
+.endCard{text-align:center;font-family:"Noto Serif TC",serif}
+.endCard .endLabel{color:var(--dim);letter-spacing:.5em;font-size:15px}
+.endCard h2{font-size:clamp(28px,6vw,46px);margin:6px 0 4px;color:var(--gold2)}
+.endDesc{font-family:"Noto Sans TC",sans-serif;color:#efe3cf;font-size:clamp(15px,2.2vw,18px);line-height:1.8;margin:6px 0 10px;white-space:pre-wrap;text-align:left}
+.endNew{display:inline-block;color:#1a0b10;background:var(--gold);font-weight:900;border-radius:999px;padding:2px 12px;margin-bottom:6px;font-family:"Noto Sans TC",sans-serif}
+.endList{margin:12px 0;text-align:center;font-family:"Noto Sans TC",sans-serif}
+.endHead{color:var(--gold);font-weight:900;margin-bottom:8px}
+.endChip{display:inline-block;margin:3px;padding:4px 12px;border-radius:999px;border:1px solid #5a2f3a;color:#8a6f6f;font-size:14px}
+.endChip.on{color:#fff;border-color:var(--gold);background:rgba(234,179,8,.15)}
+#toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:12;background:rgba(0,0,0,.8);border:1px solid var(--line);padding:8px 18px;border-radius:999px;font-weight:900;opacity:0;transition:opacity .4s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1}
+#ver{position:absolute;right:8px;bottom:2px;font-size:11px;color:rgba(255,255,255,.4);z-index:20;pointer-events:none}
+.hidden{display:none!important}
+/* 手機橫拿（高度很矮）：字和間距縮小，題目框可以佔滿高度 */
+@media (max-height:500px){
+  .qprompt{font-size:16px;line-height:1.5} .qtip{font-size:13px}
+  .btn{padding:8px 12px;margin:4px 0;font-size:15px}
+  .seg button{padding:6px 10px;font-size:15px;min-width:46px} .mrow{padding:4px 0}
+  #box{min-height:96px;padding:22px 16px 12px} #text{font-size:16px;line-height:1.6;min-height:2.6em}
+  .overlay.bottom{padding:0 8px 6px} .overlay.bottom .card, .overlay.bottom .card.hasFig{max-height:calc(100% - 52px);padding:10px 14px}
+  .card.hasFig .qfig svg{max-height:58vh} .grid button{height:38px;font-size:18px}
+  .title h1{font-size:40px} .title .subt{margin:0 0 8px} input.name{font-size:18px;padding:8px 12px} .card{padding:14px 18px} .endList{margin:6px 0}
+}
+#rotate{display:none;position:fixed;inset:0;z-index:100;background:#120a0c;color:#f7efe2;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:18px}
+#rotate .phone{width:64px;height:110px;border:5px solid var(--gold);border-radius:14px;animation:turn 2s ease-in-out infinite}
+#rotate b{font-size:22px} #rotate span{color:#c4b29a;font-size:16px;line-height:1.6}
+@keyframes turn{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+@media (orientation:portrait) and (pointer:coarse){ #rotate{display:flex} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bg"><img id="bgImg" alt=""><div class="shade"></div><div id="bgLabel"></div></div>
+  <div id="chars"></div>
+  <div id="flash"></div>
+  <div id="top">
+    <div id="chapWrap"><span class="pill" id="chap"></span><span class="pill" id="rankBox"></span></div>
+    <div id="scoreBox">積分 0</div>
+    <button class="iconBtn" id="fsBtn" title="全螢幕">⛶</button>
+    <button class="iconBtn" id="menuBtn" title="選單">☰</button>
+  </div>
+  <div id="box"><div id="name"></div><div id="text"></div><div id="next">▼</div></div>
+  <div id="ov" class="overlay hidden"></div>
+  <div id="toast"></div>
+  <div id="ver"></div>
+  <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
+</div>
+
+<script src="elements.js?v=0.5"></script>
+<script src="core.js?v=0.5"></script>
+<script src="figs.js?v=0.5"></script>
+<script src="questions.js?v=0.5"></script>
+<script src="story.js?v=0.5"></script>
+<script>
+'use strict';
+const VERSION = 'v0.5';
+const SAVE_KEY = 'yangxin_save_v1';
+const ENDING_KEY = 'yangxin_endings_v1';
+const DEV = /[?&]dev=1/.test(location.search);
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const { render, condOk, RANKS, START_RANK, resolveKey, nameOf, duelOpponents, duelOutcome, dynQuestion, DUEL_COUNT } = CORE;
+const R = s => render(s, S || { ver:'gong', me:'Na', rank:0 });
+const MAX_SCORE = QBANK.MAX_STATIC + DUEL_COUNT * 10;
+/* 這一局的題目（依 S.seed 產生，每局不同；同一局重新整理不會變） */
+let QS = {}, QS_SEED = null;
+function ensureQS(){ if (S && QS_SEED !== S.seed) { QS = QBANK.buildQuestions(S); QS_SEED = S.seed; } }
+
+/* ---------- 存檔（壞掉或缺欄位都不會當機） ---------- */
+function storeGet(k){ try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e){ return null; } }
+function storeSet(k, o){ try { localStorage.setItem(k, JSON.stringify(o)); } catch(e){} }
+function fixState(s){
+  if (!s || typeof s !== 'object' || !ELEMENTS[s.me] || !['gong','zhao'].includes(s.ver)) return null;
+  const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  const arr = v => Array.isArray(v) ? v : [];
+  return {
+    name: String(s.name || ''), ver: s.ver, me: s.me, seed: Number(s.seed) || 1,
+    scene: STORY.scenes[s.scene] ? s.scene : STORY.start, idx: Number.isInteger(s.idx) && s.idx >= 0 ? s.idx : 0,
+    rank: Math.max(0, Math.min(6, Number.isInteger(s.rank) ? s.rank : START_RANK[ELEMENTS[s.me].tier])),
+    done: obj(s.done), missed: obj(s.missed), wrong: Number(s.wrong) || 0, flags: obj(s.flags),
+    dyn: obj(s.dyn), duel: s.duel && typeof s.duel === 'object' ? s.duel : null,
+    ret: s.ret && typeof s.ret === 'object' ? s.ret : null,
+    bg: s.bg || null, show: arr(s.show), chap: typeof s.chap === 'string' ? s.chap : '', needCard: !!s.needCard,
+    ended: !!s.ended, endings: arr(s.endings), checkpoints: arr(s.checkpoints),
+    plays: Number(s.plays) || 1, playMs: Number(s.playMs) || 0,
+  };
+}
+let S = fixState(storeGet(SAVE_KEY));
+function save(){ if (S) storeSet(SAVE_KEY, S); }
+function qOf(id){ ensureQS(); return QS[id] || (S.dyn && S.dyn[id]) || null; }
+function recalcScore(){ return Object.keys(S.done).reduce((t, k) => { const q = qOf(k); return t + (q && S.done[k] ? (q.pts || 10) : 0); }, 0); }
+setInterval(() => { if (S && !document.hidden && !S.ended) { S.playMs += 1000; if (S.playMs % 10000 === 0) save(); } }, 1000);
+
+/* ---------- 畫面 ---------- */
+const bgOk = {};
+function setBg(key){
+  const b = STORY.bgs[key] || { name:'', color:'#2a1218' };
+  $('bg').style.background = b.color;
+  $('bgLabel').textContent = R(b.name || '');
+  const img = $('bgImg'); img.classList.remove('on');
+  const file = b.both ? `img/bg_${key}.webp` : `img/bg_${S ? S.ver : "gong"}_${key}.webp`;
+  if (bgOk[file] === false) return;
+  img.onload = () => { bgOk[file] = true; img.classList.add('on'); $('bgLabel').textContent = ''; };
+  img.onerror = () => { bgOk[file] = false; };
+  img.src = file;
+}
+function flash(color){ const f = $('flash'); f.style.background = `radial-gradient(circle at 50% 45%, ${color}, transparent 70%)`; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+function toast(msg){ const t = $('toast'); t.innerHTML = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2400); }
+
+/* 角色代號 → 顯示資料。元素用 ELEMENTS；其他人物在 STORY.people */
+function personOf(id){
+  const k = resolveKey(id, S);
+  if (ELEMENTS[k]) return { key:k, el:true, name: nameOf(k, S), color: ELEMENTS[k].color, sym: k };
+  const p = STORY.people[k];
+  if (p) return { key:k, el:false, name: R(p.name), color: p.color, sym: R(p.sym || ''), both: p.both };
+  return { key:k, el:false, name:k, color:'#888', sym:'' };
+}
+/* 佔位立繪（還沒有正式美術時）：古裝剪影＋元素符號＋服裝色 */
+function placeholder(p){
+  const c = p.color, gid = 'g' + Math.random().toString(36).slice(2, 7);
+  const hair = '#1c1117';
+  return `<svg viewBox="0 0 120 240" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".45"/></linearGradient></defs>
+  <path d="M14 240 C14 150 30 104 60 100 C90 104 106 150 106 240Z" fill="url(#${gid})" stroke="rgba(0,0,0,.35)"/>
+  <path d="M40 104 L60 150 L80 104" fill="none" stroke="#fde68a" stroke-width="3"/>
+  <circle cx="60" cy="62" r="26" fill="#f2d7c2"/><path d="M33 60 C33 30 87 30 87 60 C80 44 40 44 33 60Z" fill="${hair}"/>
+  <path d="M40 30 C50 14 70 14 80 30" fill="${hair}"/>
+  ${p.sym ? `<text x="60" y="200" text-anchor="middle" font-size="34" font-weight="900" fill="#1c1117" opacity=".75" font-family="serif">${esc(p.sym)}</text>` : ''}
+  <rect x="20" y="214" width="80" height="22" rx="6" fill="rgba(0,0,0,.55)"/><text x="60" y="230" text-anchor="middle" font-size="13" fill="#fff">${esc(p.name)}</text></svg>`;
+}
+const imgOk = {};
+function charFile(p, expr){ return p.both ? `img/${p.key}_${expr}.webp` : `img/${S.ver}_${p.key}_${expr}.webp`; }
+function renderChars(speakerKey){
+  const box = $('chars'); box.innerHTML = '';
+  (S.show || []).forEach(entry => {
+    const [id, ex] = String(entry).split(':');
+    const p = personOf(id);
+    if (p.key === S.me) return;                    // 玩家自己不顯示立繪（第一人稱）
+    const d = document.createElement('div');
+    d.className = 'char' + (!speakerKey || p.key === speakerKey ? ' talk' : '');
+    const tries = [charFile(p, ex || 'normal'), charFile(p, 'normal')].filter((f, i, a) => a.indexOf(f) === i && imgOk[f] !== false);
+    const ph = () => { d.innerHTML = `<div class="ph">${placeholder(p)}</div>`; };
+    const tryNext = () => {
+      const f = tries.shift(); if (!f) return ph();
+      const im = new Image(); im.alt = p.name;
+      im.onload = () => { imgOk[f] = true; d.innerHTML = ''; d.appendChild(im); };
+      im.onerror = () => { imgOk[f] = false; tryNext(); };
+      im.src = f;
+    };
+    ph(); tryNext();
+    box.appendChild(d);
+  });
+}
+/* 台詞裡的「Cu:sad|…」會把畫面上銅的表情換成 sad */
+function setExpr(id, ex){
+  const k = resolveKey(id, S);
+  S.show = (S.show || []).map(e => { const [i] = String(e).split(':'); return resolveKey(i, S) === k ? (ex ? i + ':' + ex : i) : e; });
+}
+function updateTop(){
+  const sc = STORY.scenes[S.scene];
+  if (sc && sc.sub) S.chap = sc.sub;
+  $('chap').textContent = R(S.chap || '');
+  $('rankBox').textContent = S.flags._drawn ? `${ELEMENTS[S.me].zh}・${RANKS[S.ver][S.rank]}` : '';
+  $('scoreBox').textContent = '積分 ' + recalcScore();
+}
+
+/* ---------- 打字效果 ---------- */
+let typing = null, waitingTap = false;
+function typeText(str){
+  const el = $('text'); el.textContent = ''; let i = 0;
+  clearInterval(typing); $('next').classList.add('hidden'); el.dataset.full = str;
+  typing = setInterval(() => { i += 1; el.textContent = str.slice(0, i); if (i >= str.length) finishTyping(); }, 26);
+}
+function finishTyping(){ clearInterval(typing); typing = null; $('text').textContent = $('text').dataset.full || ''; $('next').classList.remove('hidden'); }
+
+/* ---------- 主流程 ---------- */
+function goScene(id){
+  if (!STORY.scenes[id]) { alert('找不到場景：' + id); return; }
+  S.scene = id; S.idx = 0; S.show = [];   // 換場景先清空立繪，由新場景自己 show
+  S.needCard = !!(STORY.scenes[id].title || STORY.scenes[id].sub);
+  save(); run();
+}
+function run(){
+  closeOv();
+  const sc = STORY.scenes[S.scene];
+  updateTop();
+  if (S.needCard) return showChapterCard(sc);
+  for (let guard = 0; guard < 500; guard++) {
+    const it = sc.lines[S.idx];
+    if (it === undefined) { waitingTap = false; $('text').textContent = '（這段還沒寫完）'; return; }
+    if (typeof it === 'string') return showLine(it);
+    if (it.when && !condOk(it.when, S)) { S.idx++; continue; }     // 有 when 條件的台詞／動作，條件不合就跳過
+    if (it.line) return showLine(it.line);
+    if (it.bg !== undefined) { S.bg = it.bg; setBg(it.bg); S.idx++; continue; }
+    if (it.show !== undefined) { S.show = it.show.slice(); renderChars(null); S.idx++; continue; }
+    if (it.flash) { flash(it.flash === 'me' ? ELEMENTS[S.me].color : it.flash); S.idx++; continue; }
+    if (it.set) { Object.assign(S.flags, it.set); S.idx++; continue; }
+    if (it.rank) { changeRank(it.rank); S.idx++; continue; }
+    if (it.ifgo) { if (condOk(it.ifgo, S)) return goScene(it.go); S.idx++; continue; }
+    if (it.q) { if (S.done[it.q] !== undefined || !qOf(it.q)) { S.idx++; continue; } save(); return showQuestion(it.q); }
+    if (it.duel) { save(); return runDuel(it); }
+    if (it.draw) { save(); return showDraw(); }
+    if (it.choice) { save(); return showChoice(it.choice, it.prompt); }
+    if (it.ending) { save(); return showEnding(it.ending); }
+    if (it.result) { save(); return showResult(true); }
+    if (it.rand) {   // 隨機宮中小事件：記下回來的位置，跳去事件場景
+      const ev = CORE.randomEventOf(S, it.rand, STORY.randomEvents);
+      S.ret = { scene: S.scene, idx: S.idx + 1, bg: S.bg, chap: S.chap };
+      return goScene(ev);
+    }
+    if (it.ret) {    // 小事件結束：回到原本的劇情
+      const rt = S.ret; S.ret = null;
+      if (!rt || !STORY.scenes[rt.scene]) { S.idx++; continue; }
+      S.scene = rt.scene; S.idx = rt.idx; S.show = []; S.chap = rt.chap || S.chap; S.needCard = false;
+      if (rt.bg) { S.bg = rt.bg; setBg(rt.bg); }
+      save(); return run();
+    }
+    if (it.go) return goScene(it.go);
+    S.idx++;
+  }
+}
+function changeRank(d){
+  const before = S.rank;
+  S.rank = Math.max(0, Math.min(6, S.rank + d));
+  if (S.rank !== before) toast(`${S.rank > before ? '▲ 位分上升' : '▼ 位分下降'}：${RANKS[S.ver][before]} → ${RANKS[S.ver][S.rank]}`);
+  updateTop();
+}
+function showLine(raw){
+  const bar = raw.indexOf('|');
+  let spk = bar >= 0 ? raw.slice(0, bar) : '', text = bar >= 0 ? raw.slice(bar + 1) : raw, nameOverride = '';
+  const bar2 = text.lastIndexOf('|');
+  if (bar2 >= 0 && spk === 'x') { nameOverride = text.slice(bar2 + 1); text = text.slice(0, bar2); }
+  const [id, ex] = spk.split(':');
+  if (id && ex) setExpr(id, ex);
+  const nm = $('name');
+  let key = null;
+  if (id === 'me') { nm.textContent = '你'; nm.style.background = ELEMENTS[S.me].color; nm.style.color = '#1a0b10'; key = S.me; }
+  else if (id === 'x') { nm.textContent = R(nameOverride); nm.style.background = '#6b5b4b'; nm.style.color = '#fff'; }
+  else if (id) { const p = personOf(id); key = p.key;
+    // 說話的人不在畫面上：自動讓他出現（玩家自己除外）
+    if (p.key !== S.me && !(S.show || []).some(e => resolveKey(String(e).split(":")[0], S) === p.key)) S.show = [ex ? id + ":" + ex : id]; nm.textContent = p.key === S.me ? '你' : p.name; nm.style.background = p.color; nm.style.color = '#1a0b10'; }
+  else nm.textContent = '';
+  $('text').className = id ? '' : 'narr';
+  renderChars(key);
+  typeText(R(text));
+  waitingTap = true; save();
+}
+function advance(){
+  if (!$('ov').classList.contains('hidden')) return;
+  if (typing) { finishTyping(); return; }
+  if (!waitingTap) return;
+  waitingTap = false; S.idx++; run();
+}
+$('box').addEventListener('click', advance);
+$('app').addEventListener('click', e => { if (e.target.closest('#top') || e.target.closest('#ov') || e.target.closest('#box')) return; advance(); });
+document.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && $('ov').classList.contains('hidden')) { e.preventDefault(); advance(); } });
+
+/* ---------- 覆蓋層 ---------- */
+function openOv(html, bottom){
+  const o = $('ov'); o.onclick = null; o.innerHTML = html;
+  o.classList.toggle('bottom', !!bottom); document.body.classList.toggle('ovBottom', !!bottom);
+  o.classList.remove('hidden'); o.scrollTop = 0; return o;
+}
+function closeOv(){ $('ov').classList.add('hidden'); $('ov').classList.remove('bottom'); document.body.classList.remove('ovBottom'); $('ov').innerHTML = ''; }
+function showChapterCard(sc){
+  waitingTap = false; $('text').textContent = ''; $('name').textContent = ''; $('next').classList.add('hidden');
+  const o = openOv(`<div class="chapCard">${sc.title ? `<h1>${esc(R(sc.title))}</h1>` : ''}${sc.sub ? `<h2>${esc(R(sc.sub))}</h2>` : ''}<p>點一下繼續</p></div>`);
+  o.onclick = () => { o.onclick = null; S.needCard = false; save(); run(); };
+}
+function lastLineText(){
+  const lines = STORY.scenes[S.scene].lines;
+  for (let k = S.idx - 1; k >= 0; k--) {
+    let it = lines[k];
+    if (it && typeof it === 'object' && it.line && condOk(it.when, S)) it = it.line;
+    if (typeof it === 'string') {
+      const bar = it.indexOf('|'); const spk = bar >= 0 ? it.slice(0, bar).split(':')[0] : ''; let txt = bar >= 0 ? it.slice(bar + 1) : it;
+      if (spk === 'x') { const b2 = txt.lastIndexOf('|'); return R(txt.slice(b2 + 1)) + '：' + R(txt.slice(0, b2)); }
+      const who = spk === 'me' ? '你' : spk ? (personOf(spk).key === S.me ? '你' : personOf(spk).name) : '';
+      return (who ? who + '：' : '') + R(txt);
+    }
+  }
+  return '';
+}
+
+/* ---------- 分歧點存檔：只還原劇情與位分，不還原積分（不能刷分） ---------- */
+function recordCheckpoint(label){
+  const key = S.scene + '#' + S.idx;
+  const cp = { key, chap: S.chap, label: String(label || '').slice(0, 40), scene: S.scene, idx: S.idx,
+    flags: JSON.parse(JSON.stringify(S.flags)), rank: S.rank, bg: S.bg, show: S.show.slice(), ret: S.ret ? Object.assign({}, S.ret) : null };
+  S.checkpoints = S.checkpoints.filter(c => c.key !== key); S.checkpoints.push(cp);
+  if (S.checkpoints.length > 40) S.checkpoints = S.checkpoints.slice(-40);
+}
+function jumpToCheckpoint(cp){
+  if (!cp || !STORY.scenes[cp.scene]) return;
+  Object.assign(S, { scene: cp.scene, idx: cp.idx, flags: JSON.parse(JSON.stringify(cp.flags || {})), rank: cp.rank, bg: cp.bg, show: (cp.show || []).slice(), chap: cp.chap || '', needCard: false, ended: false, duel: null, ret: cp.ret || null });
+  setBg(S.bg || 'gate'); renderChars(null); save(); run();
+}
+function showCheckpoints(){
+  const list = S.checkpoints.slice().reverse();
+  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">回到分歧點</span></div>
+    <div class="qtip">回到選擇之前，換一個選項試試看。積分和答過的題目都會保留，不用重答。</div>
+    ${list.length ? list.map((c, i) => `<button class="btn cpBtn" data-i="${i}"><span class="lab" style="margin-right:8px">${esc(R(c.chap || ''))}</span>${esc(c.label)}</button>`).join('') : '<div class="qprompt">還沒有經過任何選擇。</div>'}
+    <button class="btn ghost" id="cpBack">返回</button></div>`);
+  o.onclick = e => e.stopPropagation();
+  o.querySelectorAll('.cpBtn').forEach(b => b.onclick = () => jumpToCheckpoint(list[+b.dataset.i]));
+  $('cpBack').onclick = () => { if (S.ended) showResult(true); else { closeOv(); resumeView(); } };
+}
+
+/* ---------- 抉擇 ---------- */
+function showChoice(opts, prompt){
+  waitingTap = false; $('next').classList.add('hidden');
+  const avail = opts.filter(op => condOk(op.cond, S));
+  const prev = prompt ? R(prompt) : lastLineText();
+  recordCheckpoint(prev || avail.map(o => R(o.t)).join('／')); save();
+  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">抉擇</span></div>${prev ? `<div class="qprompt">${esc(prev)}</div>` : ''}${avail.map((op, i) => `<button class="btn" data-i="${i}">${esc(R(op.t))}</button>`).join('')}</div>`, true);
+  o.onclick = e => e.stopPropagation();
+  let picked = false;
+  o.querySelectorAll('.btn').forEach(b => b.onclick = () => {
+    if (picked) return; picked = true;
+    const op = avail[+b.dataset.i];
+    if (op.set) Object.assign(S.flags, op.set);
+    if (op.rank) changeRank(op.rank);
+    if (op.go) goScene(op.go); else { S.idx++; save(); run(); }
+  });
+}
+
+/* ---------- 抽名帖（玩家的元素） ---------- */
+function showDraw(){
+  waitingTap = false;
+  const e = ELEMENTS[S.me];
+  const series = ORDER.map(k => k === S.me ? `<b>${k}</b>` : k).join(' ＞ ');
+  const o = openOv(`<div class="card tie">
+    <div class="qtip">{名帖}上寫著——</div>
+    <div class="sym" style="color:${e.color}">${S.me}</div>
+    <div class="nm">${esc(e.zh + R('{小主}'))}</div>
+    <div class="tiers">${esc(R('{tier}'))}・初始位分「${RANKS[S.ver][S.rank]}」</div>
+    <div class="tr">${esc(R(e.trait))}</div>
+    <div class="series">活性順序：${series}</div>
+    <button class="btn primary" id="drawGo">收下{名帖}</button></div>`.replace(/\{名帖\}/g, R('{名帖}')));
+  o.onclick = e2 => e2.stopPropagation();
+  flash(e.color);
+  $('drawGo').onclick = () => { S.flags._drawn = true; S.idx++; save(); run(); };
+}
+
+/* ---------- 出招 ---------- */
+function runDuel(it){
+  const n = it.duel;
+  if (!S.duel || S.duel.n !== n) S.duel = { n, opps: duelOpponents(S, n), pick: undefined, stage: 'pick' };
+  const D = S.duel;
+  if (D.stage === 'pick') return duelPick(it, D);
+  if (D.stage === 'result') return duelResult(it, D);
+  if (D.stage === 'q') return duelQuestion(it, D);
+}
+function evOf(it){ return Array.isArray(it.ev) ? CORE.pickBySeed(S, it.ev, it.duel) : (it.ev || ''); }
+function duelPick(it, D){
+  waitingTap = false; $('next').classList.add('hidden');
+  recordCheckpoint(R(evOf(it) || '出招')); save();
+  S.show = D.opps.slice(); renderChars(null);
+  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">⚔ 出招</span><span>${esc(R(evOf(it)))}</span></div>
+    <div class="qprompt">${esc(R(it.prompt || '{O}今晚在誰那裡？你要從誰手上把{O}請過來？'))}</div>
+    <div class="opts">${D.opps.map((k, i) => `<button class="btn" data-k="${k}">挑戰 ${esc(nameOf(k, S))}（${ELEMENTS[k].ox}）</button>`).join('')}
+    <button class="btn" data-k="">按兵不動</button></div>
+    <div class="qtip">搶得過就升位分；搶不過會當眾出糗、降位分。答題積分不受影響。</div>
+    ${DEV ? `<div class="dev">【測試】你=${S.me}；對手 ${D.opps.join('、')}</div>` : ''}</div>`, true);
+  o.onclick = e => e.stopPropagation();
+  let done = false;
+  o.querySelectorAll('.btn').forEach(b => b.onclick = () => {
+    if (done) return; done = true;
+    D.pick = b.dataset.k || null; D.stage = 'result';
+    const out = duelOutcome(S, D.pick);
+    if (out === 'win') changeRank(+1); else if (out === 'lose') changeRank(-1);
+    save(); duelResult(it, D);
+  });
+}
+function duelResult(it, D){
+  const out = duelOutcome(S, D.pick), me = ELEMENTS[S.me];
+  let html;
+  if (out === 'idle') html = `<div class="duelHead">按兵不動</div><div class="qprompt">${esc(R(it.idle || '你沒有出手，靜靜看著{O}在別處。位分不變。'))}</div>`;
+  else {
+    const o = ELEMENTS[D.pick];
+    S.show = [D.pick + (out === 'win' ? ':sad' : ':smug')]; renderChars(null);   // 對手的表情：被搶走→失落；你失敗→得意
+    if (out === 'win') { flash(me.color); html = `<div class="duelHead">奪寵成功！</div><div class="qprompt">${esc(R(it.win || '你一出場，{O}的目光就離不開你了。{O}從{N:' + D.pick + '}那裡起身，走向了你。'))}</div>
+      <div class="eq">${me.zh}（你） ＋ ${o.oxName} → ${me.oxName} ＋ ${o.zh}</div><div class="rankUp">你比${o.zh}活潑，搶得走氧。位分上升：${RANKS[S.ver][S.rank]}</div>`; }
+    else html = `<div class="duelHead">當眾出糗……</div><div class="qprompt">${esc(R(it.lose || '你走進{N:' + D.pick + '}的{宮}，{O}連頭都沒抬。四周傳來竊笑聲。'))}</div>
+      <div class="eq">${me.zh}（你） ＋ ${o.oxName} → 不反應</div><div class="rankDown">${o.zh}比你活潑，你搶不走${o.zh}的氧。位分下降：${RANKS[S.ver][S.rank]}</div>`;
+  }
+  const ov = openOv(`<div class="card">${html}<button class="btn primary" id="dGo">繼續</button></div>`, true);
+  ov.onclick = e => e.stopPropagation();
+  $('dGo').onclick = () => { D.stage = 'q'; save(); duelQuestion(it, D); };
+}
+function duelQuestion(it, D){
+  const id = 'dyn' + D.n;
+  if (S.done[id] !== undefined) return duelEnd();
+  if (!S.dyn[id]) S.dyn[id] = dynQuestion(S, D.n, D.opps, D.pick);
+  save(); showQuestion(id, duelEnd);
+}
+function duelEnd(){ S.duel = null; S.idx++; save(); run(); }
+
+/* ---------- 題目 ---------- */
+function shuffleIdx(n, seedStr){
+  let h = 2166136261; for (const ch of seedStr) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  const a = [...Array(n).keys()];
+  for (let i = n - 1; i > 0; i--) { h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0; const j = h % (i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function showQuestion(id, after){
+  waitingTap = false; $('next').classList.add('hidden');
+  const q = qOf(id); const pts = q.pts || 10;
+  const typeName = { single:'單選', multi:'複選', order:'排順序', match:'逐項選擇', grid:'填表' }[q.type] || '';
+  const seed = id + ':' + S.seed;                               // 每一局的選項順序都不同（防報答案位置）
+  let body = '';
+  if (q.type === 'single' || q.type === 'multi') {
+    const order = q.noShuffle ? q.options.map((v, i) => i) : shuffleIdx(q.options.length, seed);
+    body = (q.type === 'multi' ? '<div class="qtip">可以選不只一個，選好按「送出」</div>' : '') +
+      `<div class="opts ${q.options.length >= 4 && q.options.every(t => t.length < 22) ? 'two' : ''}">` + order.map(i => `<button class="btn opt" data-i="${i}">${esc(R(q.options[i]))}</button>`).join('') + '</div>';
+  } else if (q.type === 'order') {
+    const order = shuffleIdx(q.options.length, seed);
+    body = `<div class="qtip">依序點選，由大到小排出來</div><div class="seq" id="seq"></div><div class="opts two">` +
+      order.map(i => `<button class="btn opt" data-i="${i}">${esc(R(q.options[i]))}</button>`).join('') + '</div><button class="btn ghost" id="seqReset">重排</button>';
+  } else if (q.type === 'match') {
+    body = q.rows.map((r, ri) => `<div class="mrow"><div class="ml">${esc(R(r.label))}</div><div class="seg" data-r="${ri}">${r.opts.map((t, oi) => `<button data-o="${oi}">${esc(R(t))}</button>`).join('')}</div></div>`).join('');
+  } else if (q.type === 'grid') {
+    const n = q.cols.length;
+    body = `<div class="qtip">點格子切換 ＋／－（X 是自己，不用填）</div><div class="grid" style="grid-template-columns:44px repeat(${n},minmax(46px,1fr))"><div></div>` +
+      q.cols.map(c => `<div class="h">${esc(c)}</div>`).join('') + `<div class="rh">${esc(q.row)}</div>` +
+      q.ans.map((a, ci) => a === 'X' ? `<button class="x" disabled>X</button>` : `<button class="cell" data-c="${ci}">？</button>`).join('') + '</div>';
+  }
+  const needSubmit = q.type !== 'single';
+  const figHtml = q.figSvg ? `<div class="qfig">${q.figSvg}</div>` : q.fig && FIGS[q.fig] ? `<div class="qfig">${FIGS[q.fig]}</div>` : '';
+  const o = openOv(`<div class="card ${figHtml ? 'hasFig' : ''}">
+    <div class="qhead"><span class="tag">${q.dyn ? '奪寵之後' : '宮中考驗'}・${typeName}</span><span id="qpts">${S.missed[id] ? '（再試一次，這題已不計分）' : `答對 +${pts}`}</span></div>
+    <div class="qgrid"><div class="qleft"><div class="qprompt">${esc(R(q.prompt))}</div>${figHtml}</div>
+    <div class="qright">${body}${needSubmit ? '<button class="btn primary" id="submit">送出</button>' : ''}<div class="fb" id="fb"></div>
+    ${DEV ? `<div class="dev">【測試】答案：${esc(R(JSON.stringify(q.answer || (q.rows ? q.rows.map(r => r.ans) : q.ans))))}　題號：${id}</div>` : ''}</div></div></div>`, true);
+  o.onclick = e => e.stopPropagation();
+  const fb = $('fb');
+  let locked = false, sel = new Set(), seq = [];
+  const pick = {}, cells = {};
+  const finish = () => { if (after) after(); else { S.idx++; save(); run(); } };
+  const check = ok => {
+    if (locked) return; locked = true;
+    if (ok) {
+      const gain = S.missed[id] ? 0 : pts;
+      S.done[id] = gain; save(); updateTop();
+      fb.className = 'fb ok'; fb.textContent = gain ? `答對了！+${gain}` : '答對了！';
+      setTimeout(finish, 900);
+    } else {
+      S.missed[id] = true; S.wrong++; save();
+      let extra = '';
+      if (q.type === 'match' && q.rows.length >= 4) extra = `（有 ${q.rows.filter((r, i) => r.opts[pick[i]] !== r.ans).length} 個放錯）`;
+      if (q.type === 'grid') extra = `（有 ${q.ans.filter((a, i) => a !== 'X' && cells[i] !== a).length} 格不對）`;
+      fb.className = 'fb bad'; fb.textContent = '再想想看～' + extra + (q.hint ? '\n提示：' + R(q.hint) : '');
+      $('qpts').textContent = '（再試一次，這題已不計分）';
+      setTimeout(() => { locked = false; }, 700);
+    }
+  };
+  o.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    if (locked) return; const i = +b.dataset.i;
+    if (q.type === 'single') { o.querySelectorAll('.opt').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); check(q.options[i] === q.answer); }
+    if (q.type === 'multi') { sel.has(i) ? sel.delete(i) : sel.add(i); b.classList.toggle('sel'); }
+    if (q.type === 'order' && !seq.includes(i)) { seq.push(i); b.classList.add('sel'); $('seq').textContent = seq.map(k => R(q.options[k])).join(' ＞ '); }
+  });
+  o.querySelectorAll('.seg').forEach(g => g.querySelectorAll('button').forEach(b => b.onclick = () => {
+    if (locked) return; g.querySelectorAll('button').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); pick[+g.dataset.r] = +b.dataset.o;
+  }));
+  o.querySelectorAll('.cell').forEach(b => b.onclick = () => {
+    if (locked) return; const c = +b.dataset.c; const v = cells[c] === '+' ? '-' : '+'; cells[c] = v;
+    b.textContent = v === '+' ? '＋' : '－'; b.className = 'cell ' + (v === '+' ? 'p' : 'm');
+  });
+  const rs = $('seqReset'); if (rs) rs.onclick = () => { seq = []; $('seq').textContent = ''; o.querySelectorAll('.opt').forEach(x => x.classList.remove('sel')); };
+  const sb = $('submit');
+  if (sb) sb.onclick = () => {
+    if (q.type === 'multi') { if (!sel.size) return; const g = [...sel].map(i => q.options[i]).sort().join('|'); check(g === [...q.answer].sort().join('|')); }
+    if (q.type === 'order') { if (seq.length !== q.options.length) { fb.className = 'fb bad'; fb.textContent = '要全部排完喔'; return; } check(seq.map(i => q.options[i]).join('|') === q.answer.join('|')); }
+    if (q.type === 'match') { if (Object.keys(pick).length < q.rows.length) { fb.className = 'fb bad'; fb.textContent = '每一項都要選喔'; return; } check(q.rows.every((r, i) => r.opts[pick[i]] === r.ans)); }
+    if (q.type === 'grid') { const need = q.ans.filter(a => a !== 'X').length; if (Object.keys(cells).length < need) { fb.className = 'fb bad'; fb.textContent = '每一格都要填喔'; return; } check(q.ans.every((a, i) => a === 'X' || cells[i] === a)); }
+  };
+}
+
+/* ---------- 結局 ---------- */
+function getEndings(){ const a = storeGet(ENDING_KEY); return Array.isArray(a) ? a.filter(k => STORY.endings[k]) : []; }
+function addEnding(id){ const a = getEndings(); if (!a.includes(id)) { a.push(id); storeSet(ENDING_KEY, a); } }
+function endingListHtml(){
+  const got = getEndings(), all = Object.keys(STORY.endings);
+  return `<div class="endList"><div class="endHead">結局收集　${got.length} / ${all.length}</div>` +
+    all.map(k => `<span class="endChip ${got.includes(k) ? 'on' : ''}">${got.includes(k) ? esc(R(STORY.endings[k].name)) : '？？？'}</span>`).join('') + '</div>';
+}
+function showEnding(id){
+  waitingTap = false; $('next').classList.add('hidden');
+  const e = STORY.endings[id] || { name:id, desc:'' };
+  const isNew = !getEndings().includes(id); addEnding(id);
+  if (!S.endings.includes(id)) S.endings.push(id);
+  save();
+  const desc = R(e.desc);
+  const o = openOv(`<div class="card endCard"><div class="endLabel">結局</div><h2>${esc(R(e.name))}</h2>
+    ${isNew ? '<div class="endNew">新解鎖！</div>' : ''}<p class="endDesc">${esc(desc)}</p>
+    ${endingListHtml()}<button class="btn primary" id="endGo">看成績</button></div>`);
+  o.onclick = ev => ev.stopPropagation();
+  $('endGo').onclick = () => { S.idx++; save(); run(); };
+}
+
+/* ---------- 成績卡（Helen：學生拿來登記，顯示總分即可） ---------- */
+function showResult(fromStory){
+  waitingTap = false;
+  if (fromStory) S.ended = true;
+  save();
+  const lastEnd = S.endings.length ? STORY.endings[S.endings[S.endings.length - 1]] : null;
+  const d = new Date();
+  const o = openOv(`<div class="card result">
+    <div class="qtip">${esc(R('{篇}'))}・${ELEMENTS[S.me].zh}（${S.me}）・${RANKS[S.ver][S.rank]}${S.ended && lastEnd ? '・結局：' + esc(R(lastEnd.name)) : '・遊戲進行中'}</div>
+    <div class="who">${esc(S.name || '（未填名字）')}</div>
+    <div class="big">${recalcScore()}</div>
+    <div class="max">總分（滿分 ${MAX_SCORE}）</div>
+    <div style="color:var(--dim);font-size:14px;margin-top:8px">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}　${VERSION}</div>
+    ${fromStory && S.checkpoints.length ? '<button class="btn primary" id="rcp">回到分歧點，看看別的結局</button>' : ''}
+    ${fromStory ? '<button class="btn" id="rnew">重新開始一局（重新抽籤）</button>' : '<button class="btn primary" id="rback">回到遊戲</button>'}
+  </div>`);
+  o.onclick = e => e.stopPropagation();
+  if ($('rback')) $('rback').onclick = () => { closeOv(); resumeView(); };
+  if ($('rnew')) $('rnew').onclick = () => confirmRestart();
+  if ($('rcp')) $('rcp').onclick = () => showCheckpoints();
+}
+
+/* ---------- 選單 ---------- */
+function showMenu(){
+  const devJump = DEV ? `<label class="f">【測試】跳到場景</label><select id="jump" style="width:100%;font-size:18px;padding:8px;border-radius:10px;background:#1a0b10;color:#fff">${Object.keys(STORY.scenes).map(k => `<option value="${k}">${k}　${esc(R(STORY.scenes[k].sub || ''))}</option>`).join('')}</select><button class="btn" id="jumpGo">跳過去</button>` : '';
+  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">選單</span></div>
+    <button class="btn" id="mBack">回到遊戲</button>
+    <button class="btn" id="mMe">我的名帖（看活性順序）</button>
+    <button class="btn" id="mScore">看我的總分</button>
+    <button class="btn" id="mCp">回到分歧點（${S.checkpoints.length}）</button>
+    <button class="btn" id="mRestart">重新開始（重新抽籤）</button>${devJump}
+    <div style="color:var(--dim);font-size:13px;margin-top:10px">進度會自動存在這台裝置上。${VERSION}</div></div>`);
+  o.onclick = e => { if (e.target === o) { closeOv(); resumeView(); } };
+  $('mBack').onclick = () => { closeOv(); resumeView(); };
+  $('mMe').onclick = () => { const e = ELEMENTS[S.me];
+    const oo = openOv(`<div class="card tie"><div class="sym" style="color:${e.color}">${S.me}</div><div class="nm">${esc(e.zh + R('{小主}'))}</div><div class="tiers">${esc(R('{tier}'))}・${RANKS[S.ver][S.rank]}</div><div class="tr">${esc(R(e.trait))}</div><div class="series">活性順序：${ORDER.map(k => k === S.me ? `<b>${k}</b>` : k).join(' ＞ ')}</div><button class="btn primary" id="mmBack">返回</button></div>`);
+    oo.onclick = ev => ev.stopPropagation(); $('mmBack').onclick = () => { closeOv(); resumeView(); }; };
+  $('mScore').onclick = () => showResult(false);
+  $('mRestart').onclick = () => confirmRestart();
+  $('mCp').onclick = () => showCheckpoints();
+  if ($('jumpGo')) $('jumpGo').onclick = () => { S.duel = null; goScene($('jump').value); };
+}
+function confirmRestart(){
+  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">重新開始</span></div>
+    <div class="qprompt">確定要從頭開始嗎？會重新抽籤，目前的積分會歸零。（結局收集會保留）</div>
+    <button class="btn primary" id="yes">確定重新開始</button><button class="btn ghost" id="no">取消</button></div>`);
+  o.onclick = e => e.stopPropagation();
+  $('yes').onclick = () => titleScreen(true);
+  $('no').onclick = () => { closeOv(); resumeView(); };
+}
+$('menuBtn').onclick = e => { e.stopPropagation(); if (S && $('ov').classList.contains('hidden') || S && S.ended) showMenu(); };
+function resumeView(){
+  const sc = STORY.scenes[S.scene];
+  if (S.needCard) return showChapterCard(sc);
+  const it = sc.lines[S.idx];
+  if (typeof it === 'string' || (it && it.line && condOk(it.when, S))) { showLine(typeof it === 'string' ? it : it.line); finishTyping(); }
+  else run();
+}
+
+/* ---------- 全螢幕 ---------- */
+(function(){
+  const el = document.documentElement;
+  if (!(el.requestFullscreen || el.webkitRequestFullscreen)) { $('fsBtn').classList.add('hidden'); return; }
+  $('fsBtn').onclick = e => {
+    e.stopPropagation();
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else {
+        const r = (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+        const lock = () => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e2) {} };
+        if (r && r.then) r.then(lock).catch(() => {}); else lock();
+      }
+    } catch (err) {}
+  };
+})();
+
+/* ---------- 開始畫面 ---------- */
+function newGame(name, ver, plays){
+  const params = new URLSearchParams(location.search);
+  let me = ORDER[Math.floor(Math.random() * ORDER.length)];
+  if (DEV && ELEMENTS[params.get('me')]) me = params.get('me');       // 測試模式可指定元素：?dev=1&me=Mg
+  S = fixState({ name, ver, me, seed: Math.floor(Math.random() * 2147483646) + 1, plays, scene: STORY.start, idx: 0 });
+  S.needCard = true; save();
+  setBg('xiunv'); renderChars(null); run();
+}
+function titleScreen(restart){
+  setBg('gate'); $('chars').innerHTML = ''; $('chap').textContent = ''; $('rankBox').textContent = ''; $('scoreBox').textContent = '積分 0';
+  const has = !restart && S && !S.ended && (S.idx > 0 || S.scene !== STORY.start);
+  const plays = S ? S.plays + 1 : 1;
+  const o = openOv(`<div class="card title">
+    <h1>氧心殿</h1><div class="subt">八下理化・氧化還原　宮鬥推理冒險</div>
+    ${has ? `<button class="btn primary" id="tCont">繼續遊戲（${esc(S.name)}・${ELEMENTS[S.me].zh}）</button>` : ''}
+    <label class="f">座號＋姓名（成績卡會顯示）</label>
+    <input class="name" id="tName" maxlength="20" placeholder="例如：805 王小明" value="${S ? esc(S.name) : ''}">
+    <label class="f">${has ? '或者從頭開始一局新的——' : ''}你的性別：</label>
+    <div class="gender"><button class="btn" id="tF">女生</button><button class="btn" id="tM">男生</button></div>
+    <div class="fb bad" id="tErr"></div>
+    ${endingListHtml()}
+  </div>`.replace('{皇上}', '皇上'));
+  o.onclick = e => e.stopPropagation();
+  if ($('tCont')) $('tCont').onclick = () => { closeOv(); setBg(S.bg || 'gate'); renderChars(null); updateTop(); resumeView(); };
+  const start = ver => {
+    const nm = $('tName').value.trim();
+    if (!nm) { $('tErr').textContent = '請先輸入座號＋姓名'; return; }
+    if (has) {
+      const c = openOv(`<div class="card"><div class="qprompt">確定從頭開始？會重新抽籤，目前進度（積分 ${recalcScore()}）會被清掉。</div>
+        <button class="btn primary" id="y">確定</button><button class="btn ghost" id="n">取消</button></div>`);
+      c.onclick = e => e.stopPropagation();
+      $('y').onclick = () => newGame(nm, ver, plays); $('n').onclick = () => titleScreen();
+    } else newGame(nm, ver, plays);
+  };
+  $('tF').onclick = () => start('gong');
+  $('tM').onclick = () => start('zhao');
+}
+$('ver').textContent = VERSION + (DEV ? '・測試模式' : '');
+titleScreen();
+</script>
+</body>
+</html>
