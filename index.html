@@ -191,6 +191,35 @@ body.onTitle #top{z-index:12}
   .tEnds{margin-top:8px;padding-top:8px} .tCopy{margin-top:6px}
 }
 
+
+/* ---------- 宮廷風對話框（選單、確認、分歧點、名帖） ---------- */
+.card.pal{position:relative;overflow:visible;border-radius:4px;width:min(460px,100%);padding:22px 24px 16px;
+  background:linear-gradient(165deg,rgba(74,18,28,.96),rgba(26,8,12,.98));border:1px solid rgba(233,196,106,.6);
+  outline:1px solid rgba(233,196,106,.22);outline-offset:-8px;box-shadow:0 24px 60px rgba(0,0,0,.65),inset 0 0 40px rgba(0,0,0,.35);animation:fade .35s}
+.pal .cn{position:absolute;width:18px;height:18px;border:2px solid #e9c46a}
+.pal .cn.a{top:-2px;left:-2px;border-right:0;border-bottom:0}.pal .cn.b{top:-2px;right:-2px;border-left:0;border-bottom:0}
+.pal .cn.c{bottom:-2px;left:-2px;border-right:0;border-top:0}.pal .cn.d{bottom:-2px;right:-2px;border-left:0;border-top:0}
+.palHead{text-align:center;font-family:"Noto Serif TC",serif;font-weight:900;color:#fde68a;font-size:clamp(20px,2.8vw,24px);letter-spacing:.4em;margin-right:-.4em;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+.pal .tRule{margin:6px auto 12px;width:min(220px,70%)}
+.mItem{display:flex;align-items:center;gap:14px;width:100%;background:transparent;border:0;border-bottom:1px solid rgba(233,196,106,.15);padding:11px 8px;text-align:left;
+  font-family:"Noto Serif TC",serif;font-weight:700;font-size:clamp(16px,2.2vw,19px);letter-spacing:.12em;color:#f7ead0;transition:background .15s}
+.mItem:last-of-type{border-bottom:0}
+.mItem:hover{background:rgba(233,196,106,.08)} .mItem:active{background:rgba(233,196,106,.16)}
+.mItem .ic{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:5px;background:#a3161a;color:#fff3dc;font-size:17px;font-weight:900;letter-spacing:0;box-shadow:inset 0 0 0 2px rgba(255,235,200,.5),0 2px 6px rgba(0,0,0,.4)}
+.mItem .ic.b{background:#1e3a5f}.mItem .ic.g{background:#8a6212}.mItem .ic.k{background:#3f3f46}
+.mItem small{margin-left:auto;font-family:"Noto Sans TC",sans-serif;font-weight:500;font-size:13px;letter-spacing:0;color:#d9c3a0;text-align:right}
+.mItem .chap{flex:none;font-size:12px;letter-spacing:0;color:#3a1206;background:linear-gradient(180deg,#fbe6a2,#d9a43c);border-radius:3px;padding:2px 6px}
+.palText{color:#f3e6cf;font-size:clamp(16px,2.2vw,18px);line-height:1.8;margin:2px 0 14px;text-align:center}
+.palTip{color:#d9c3a0;font-size:14px;line-height:1.6;margin:0 0 8px;text-align:center}
+.pal .tCont{margin:0}
+.gBtn{display:block;width:100%;margin-top:9px;padding:10px;background:transparent;border:1px solid rgba(233,196,106,.4);border-radius:3px;color:#e9dcc6;
+  font-family:"Noto Serif TC",serif;font-weight:700;font-size:16px;letter-spacing:.25em;transition:background .15s}
+.gBtn:hover{background:rgba(233,196,106,.08)}
+.palNote{text-align:center;color:rgba(217,195,160,.6);font-size:12px;margin-top:12px;letter-spacing:.1em}
+.pal.tie .sym{margin-top:-4px}
+.palList{max-height:min(52vh,420px);overflow-y:auto;margin:0 -6px;padding:0 6px}
+@media (max-height:500px){ .card.pal{padding:14px 18px 10px} .mItem{padding:7px 8px} .mItem .ic{width:28px;height:28px;font-size:14px} .pal .tRule{margin:4px auto 6px} .palList{max-height:48vh} }
+
 /* 版權宣告 */
 .copy{margin-top:12px;font-size:13px;color:var(--dim);text-align:center;letter-spacing:1px}
 #ver{position:absolute;right:8px;bottom:2px;font-size:11px;color:rgba(255,255,255,.4);z-index:20;pointer-events:none}
@@ -231,14 +260,14 @@ body.onTitle #top{z-index:12}
   <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
 </div>
 
-<script src="elements.js?v=1.1"></script>
-<script src="core.js?v=1.1"></script>
-<script src="figs.js?v=1.1"></script>
-<script src="questions.js?v=1.1"></script>
-<script src="story.js?v=1.1"></script>
+<script src="elements.js?v=1.2"></script>
+<script src="core.js?v=1.2"></script>
+<script src="figs.js?v=1.2"></script>
+<script src="questions.js?v=1.2"></script>
+<script src="story.js?v=1.2"></script>
 <script>
 'use strict';
-const VERSION = 'v1.1';
+const VERSION = 'v1.2';
 const SAVE_KEY = 'yangxin_save_v1';
 const ENDING_KEY = 'yangxin_endings_v1';
 const DEV = /[?&]dev=1/.test(location.search);
@@ -544,6 +573,9 @@ function openOv(html, bottom){
   o.classList.toggle('bottom', !!bottom); document.body.classList.toggle('ovBottom', !!bottom);
   o.classList.remove('hidden'); o.scrollTop = 0; return o;
 }
+/* 宮廷風對話框外框 */
+const PAL_CN = '<span class="cn a"></span><span class="cn b"></span><span class="cn c"></span><span class="cn d"></span>';
+function palCard(title, inner, cls){ return `<div class="card pal ${cls || ''}">${PAL_CN}${title ? `<div class="palHead">${title}</div><div class="tRule"><i></i><b></b><i></i></div>` : ''}${inner}</div>`; }
 function closeOv(){ $('ov').classList.add('hidden'); $('ov').classList.remove('bottom', 'titleOv'); document.body.classList.remove('onTitle'); document.body.classList.remove('ovBottom'); $('ov').innerHTML = ''; }
 function showChapterCard(sc){
   waitingTap = false; $('text').textContent = ''; $('name').textContent = ''; $('next').classList.add('hidden');
@@ -580,10 +612,9 @@ function jumpToCheckpoint(cp){
 }
 function showCheckpoints(){
   const list = S.checkpoints.slice().reverse();
-  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">回到分歧點</span></div>
-    <div class="qtip">回到選擇之前，換一個選項試試看。積分和答過的題目都會保留，不用重答。</div>
-    ${list.length ? list.map((c, i) => `<button class="btn cpBtn" data-i="${i}"><span class="lab" style="margin-right:8px">${esc(R(c.chap || ''))}</span>${esc(c.label)}</button>`).join('') : '<div class="qprompt">還沒有經過任何選擇。</div>'}
-    <button class="btn ghost" id="cpBack">返回</button></div>`);
+  const o = openOv(palCard('回到分歧點', `<div class="palTip">回到選擇之前，換一個選項試試看。<br>答過的題目都會保留，不用重答。</div>
+    <div class="palList">${list.length ? list.map((c, i) => `<button class="mItem cpBtn" data-i="${i}">${c.chap ? `<span class="chap">${esc(R(c.chap))}</span>` : ''}<span>${esc(c.label)}</span></button>`).join('') : '<div class="palText">還沒有經過任何選擇。</div>'}</div>
+    <button class="gBtn" id="cpBack">返回</button>`));
   o.onclick = e => e.stopPropagation();
   o.querySelectorAll('.cpBtn').forEach(b => b.onclick = () => jumpToCheckpoint(list[+b.dataset.i]));
   $('cpBack').onclick = () => { if (S.ended) showResult(true); else { closeOv(); resumeView(); } };
@@ -844,27 +875,24 @@ function showResult(fromStory){
 /* ---------- 選單 ---------- */
 function showMenu(){
   const devJump = DEV ? `<label class="f">【測試】跳到場景</label><select id="jump" style="width:100%;font-size:18px;padding:8px;border-radius:10px;background:#1a0b10;color:#fff">${Object.keys(STORY.scenes).map(k => `<option value="${k}">${k}　${esc(R(STORY.scenes[k].sub || ''))}</option>`).join('')}</select><button class="btn" id="jumpGo">跳過去</button>` : '';
-  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">選單</span></div>
-    <button class="btn" id="mBack">回到遊戲</button>
-    <button class="btn" id="mMe">我的名帖（看活性順序）</button>
-    <button class="btn" id="mScore">看我的總分</button>
-    <button class="btn" id="mCp">回到分歧點（${S.checkpoints.length}）</button>
-    <button class="btn" id="mRestart">重新開始（重新抽籤）</button>${devJump}
-    <div style="color:var(--dim);font-size:13px;margin-top:10px">進度會自動存在這台裝置上。${VERSION}</div></div>`);
+  const o = openOv(palCard('選　單', `
+    <button class="mItem" id="mBack"><span class="ic">返</span>回到遊戲</button>
+    <button class="mItem" id="mMe"><span class="ic g">帖</span>我的{名帖}<small>看活性順序</small></button>
+    <button class="mItem" id="mCp"><span class="ic b">溯</span>回到分歧點<small>${S.checkpoints.length} 處</small></button>
+    <button class="mItem" id="mRestart"><span class="ic k">新</span>重新開始<small>重新抽籤</small></button>${devJump}
+    <div class="palNote">進度會自動存在這台裝置上・© 2026 蕭妤真・${VERSION}</div>`).replace('{名帖}', R('{名帖}')));
   o.onclick = e => { if (e.target === o) { closeOv(); resumeView(); } };
   $('mBack').onclick = () => { closeOv(); resumeView(); };
   $('mMe').onclick = () => { const e = ELEMENTS[S.me];
-    const oo = openOv(`<div class="card tie"><div class="sym" style="color:${e.color}">${S.me}</div><div class="nm">${esc(e.zh + R('{小主}'))}</div><div class="tiers">${esc(R('{tier}'))}・${RANKS[S.ver][S.rank]}</div><div class="tr">${esc(R(e.trait))}</div><div class="series">活性順序：${ORDER.map(k => k === S.me ? `<b>${k}</b>` : k).join(' ＞ ')}</div><button class="btn primary" id="mmBack">返回</button></div>`);
+    const oo = openOv(`<div class="card pal tie">${PAL_CN}<div class="sym" style="color:${e.color}">${S.me}</div><div class="nm">${esc(e.zh + R('{小主}'))}</div><div class="tiers">${esc(R('{tier}'))}・${RANKS[S.ver][S.rank]}</div><div class="tr">${esc(R(e.trait))}</div><div class="series">活性順序：${ORDER.map(k => k === S.me ? `<b>${k}</b>` : k).join(' ＞ ')}</div><button class="gBtn" id="mmBack">返回</button></div>`);
     oo.onclick = ev => ev.stopPropagation(); $('mmBack').onclick = () => { closeOv(); resumeView(); }; };
-  $('mScore').onclick = () => showResult(false);
   $('mRestart').onclick = () => confirmRestart();
   $('mCp').onclick = () => showCheckpoints();
   if ($('jumpGo')) $('jumpGo').onclick = () => { S.duel = null; goScene($('jump').value); };
 }
 function confirmRestart(){
-  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">重新開始</span></div>
-    <div class="qprompt">確定要從頭開始嗎？會重新抽籤，目前的積分會歸零。（結局收集會保留）</div>
-    <button class="btn primary" id="yes">確定重新開始</button><button class="btn ghost" id="no">取消</button></div>`);
+  const o = openOv(palCard('重新開始', `<div class="palText">確定要從頭開始嗎？<br>會重新抽籤，目前的進度會清掉。<br><span style="color:#d9c3a0;font-size:14px">（結局收集會保留）</span></div>
+    <button class="tCont" id="yes">確定重新開始</button><button class="gBtn" id="no">取消</button>`));
   o.onclick = e => e.stopPropagation();
   $('yes').onclick = () => titleScreen(true);
   $('no').onclick = () => { closeOv(); resumeView(); };
@@ -934,8 +962,8 @@ function titleScreen(restart){
     const nm = $('tName').value.trim();
     if (!nm) { $('tErr').textContent = '請先輸入座號＋姓名'; return; }
     if (has) {
-      const c = openOv(`<div class="card"><div class="qprompt">確定從頭開始？會重新抽籤，目前進度（積分 ${recalcScore()}）會被清掉。</div>
-        <button class="btn primary" id="y">確定</button><button class="btn ghost" id="n">取消</button></div>`);
+      const c = openOv(palCard('從頭開始', `<div class="palText">確定從頭開始嗎？<br>會重新抽籤，目前的進度會清掉。</div>
+        <button class="tCont" id="y">確定</button><button class="gBtn" id="n">取消</button>`));
       c.onclick = e => e.stopPropagation();
       $('y').onclick = () => newGame(nm, ver, plays); $('n').onclick = () => titleScreen();
     } else newGame(nm, ver, plays);
