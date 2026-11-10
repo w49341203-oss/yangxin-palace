@@ -139,6 +139,58 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
 .endChip.on{color:#fff;border-color:var(--gold);background:rgba(234,179,8,.15)}
 #toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:12;background:rgba(0,0,0,.8);border:1px solid var(--line);padding:8px 18px;border-radius:999px;font-weight:900;opacity:0;transition:opacity .4s;pointer-events:none;white-space:nowrap}
 #toast.on{opacity:1}
+
+/* ---------- 標題畫面（v1.1 重新設計：讓宮門背景透出來、金字牌匾、印章按鈕） ---------- */
+body.onTitle #box, body.onTitle #menuBtn, body.onTitle #chapWrap{display:none}
+body.onTitle #top{z-index:12}
+.overlay.titleOv{background:radial-gradient(ellipse 70% 60% at 50% 42%,rgba(10,4,6,.05),rgba(10,4,6,.55) 80%),linear-gradient(0deg,rgba(10,4,6,.75),rgba(10,4,6,0) 50%);padding:clamp(14px,4vh,40px) 16px calc(env(safe-area-inset-bottom) + 14px)}
+.tWrap{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,3vh,30px);width:min(1080px,100%);margin:auto;animation:fade .8s}
+@media (orientation:landscape) and (min-width:700px){ .tWrap{flex-direction:row;justify-content:space-between;gap:28px} }
+.tHero{flex:1;text-align:center;min-width:0;padding:clamp(10px,3vh,28px) 10px;background:radial-gradient(ellipse 60% 55% at 50% 52%,rgba(12,4,6,.55),rgba(12,4,6,0) 75%)}
+.tKicker{font-family:"Noto Serif TC",serif;font-weight:700;letter-spacing:.55em;margin-right:-.55em;color:#fbefd5;font-size:clamp(13px,1.7vw,17px);text-shadow:0 2px 10px #000,0 0 2px #000}
+.tHero h1{font-family:"Noto Serif TC",serif;font-weight:900;font-size:clamp(54px,min(11vw,19vh),132px);line-height:1.12;letter-spacing:.14em;margin:.08em -.14em 0 0;
+  background:linear-gradient(180deg,#fffbe8 0%,#fde68a 38%,#d9a52b 66%,#97621a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(70,25,8,.85)) drop-shadow(0 8px 22px rgba(0,0,0,.75))}
+.tRule{display:flex;align-items:center;justify-content:center;gap:12px;margin:4px auto 6px;width:min(340px,80%)}
+.tRule i{flex:1;height:1px;background:linear-gradient(90deg,transparent,#e9c46a,transparent)}
+.tRule b{width:9px;height:9px;transform:rotate(45deg);background:#e9c46a;box-shadow:0 0 10px rgba(233,196,106,.8)}
+.tSub{font-family:"Noto Serif TC",serif;font-weight:700;color:#fde68a;letter-spacing:.6em;margin-right:-.6em;font-size:clamp(15px,2.1vw,21px);text-shadow:0 2px 10px #000}
+.tPanel{position:relative;width:min(420px,100%);flex:none;padding:22px 24px 16px;border-radius:4px;
+  background:linear-gradient(165deg,rgba(74,18,28,.86),rgba(26,8,12,.92));border:1px solid rgba(233,196,106,.6);
+  outline:1px solid rgba(233,196,106,.22);outline-offset:-8px;box-shadow:0 24px 60px rgba(0,0,0,.6),inset 0 0 40px rgba(0,0,0,.35);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.tPanel .cn{position:absolute;width:18px;height:18px;border:2px solid #e9c46a}
+.tPanel .cn.a{top:-2px;left:-2px;border-right:0;border-bottom:0}.tPanel .cn.b{top:-2px;right:-2px;border-left:0;border-bottom:0}
+.tPanel .cn.c{bottom:-2px;left:-2px;border-right:0;border-top:0}.tPanel .cn.d{bottom:-2px;right:-2px;border-left:0;border-top:0}
+.tCont{display:block;width:100%;border-radius:3px;padding:11px 12px;margin:0 0 14px;text-align:center;font-family:"Noto Serif TC",serif;font-weight:900;font-size:clamp(17px,2.3vw,20px);letter-spacing:.2em;color:#3a1206;
+  background:linear-gradient(180deg,#fbe6a2,#e0b04a 50%,#b07b1e);border:1px solid #fff1bf;box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 6px 18px rgba(0,0,0,.45);transition:transform .12s,filter .12s}
+.tCont small{display:block;font-family:"Noto Sans TC",sans-serif;font-weight:700;font-size:13px;letter-spacing:.05em;color:#5b2a0c;opacity:.85}
+.tCont:active{transform:scale(.98)} .tCont:hover{filter:brightness(1.06)}
+.tLab{display:block;color:#d9c3a0;font-size:13px;letter-spacing:.15em;margin:2px 0 2px}
+.tName{width:100%;background:transparent;border:0;border-bottom:1px solid rgba(233,196,106,.5);border-radius:0;color:#fff6e3;font-family:"Noto Serif TC",serif;font-size:clamp(20px,2.6vw,24px);padding:6px 2px 8px;outline:none;transition:border-color .2s}
+.tName::placeholder{color:rgba(217,195,160,.45)}
+.tName:focus{border-bottom-color:#fde68a;box-shadow:0 1px 0 #fde68a}
+.tSex{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.tSeal{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px 12px;border-radius:3px;background:rgba(18,5,9,.55);border:1px solid rgba(233,196,106,.38);
+  font-family:"Noto Serif TC",serif;font-weight:700;font-size:clamp(17px,2.2vw,20px);letter-spacing:.3em;color:#f7ead0;transition:transform .12s,border-color .15s,background .15s}
+.tSeal:hover{border-color:#e9c46a;background:rgba(74,18,28,.7)} .tSeal:active{transform:translateY(1px) scale(.98)}
+.tSeal .seal{width:46px;height:46px;display:grid;place-items:center;border-radius:6px;background:#a3161a;color:#fff3dc;font-size:26px;font-weight:900;letter-spacing:0;
+  box-shadow:inset 0 0 0 2px rgba(255,235,200,.55),0 3px 10px rgba(0,0,0,.4);transform:rotate(-4deg)}
+.tSeal.m .seal{background:#1e3a5f;transform:rotate(4deg)}
+.tPanel .fb{min-height:0;margin:6px 0 0;text-align:center}
+.tEnds{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(233,196,106,.2)}
+.tEnds .lb{font-family:"Noto Serif TC",serif;color:#e9c46a;font-size:13px;letter-spacing:.2em;margin-right:4px}
+.tEnds .e{min-width:26px;height:26px;padding:0 6px;display:grid;place-items:center;border:1px solid rgba(233,196,106,.3);border-radius:3px;font-family:"Noto Serif TC",serif;font-size:12px;color:rgba(217,195,160,.5)}
+.tEnds .e.on{border-color:#e9c46a;color:#3a1206;background:linear-gradient(180deg,#fbe6a2,#d9a43c);font-weight:900}
+.tCopy{text-align:center;color:rgba(217,195,160,.6);font-size:12px;letter-spacing:.2em;margin-top:10px}
+@media (max-height:500px){
+  .overlay.titleOv{padding:10px 14px}
+  .tPanel{padding:14px 18px 10px;width:min(380px,100%)}
+  .tCont{padding:7px 10px;margin-bottom:8px} .tCont small{display:inline;margin-left:6px}
+  .tSeal{flex-direction:row;justify-content:center;padding:8px} .tSeal .seal{width:34px;height:34px;font-size:19px}
+  .tEnds{margin-top:8px;padding-top:8px} .tCopy{margin-top:6px}
+}
+
 /* 版權宣告 */
 .copy{margin-top:12px;font-size:13px;color:var(--dim);text-align:center;letter-spacing:1px}
 #ver{position:absolute;right:8px;bottom:2px;font-size:11px;color:rgba(255,255,255,.4);z-index:20;pointer-events:none}
@@ -179,14 +231,14 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
 </div>
 
-<script src="elements.js?v=1.0"></script>
-<script src="core.js?v=1.0"></script>
-<script src="figs.js?v=1.0"></script>
-<script src="questions.js?v=1.0"></script>
-<script src="story.js?v=1.0"></script>
+<script src="elements.js?v=1.1"></script>
+<script src="core.js?v=1.1"></script>
+<script src="figs.js?v=1.1"></script>
+<script src="questions.js?v=1.1"></script>
+<script src="story.js?v=1.1"></script>
 <script>
 'use strict';
-const VERSION = 'v1.0';
+const VERSION = 'v1.1';
 const SAVE_KEY = 'yangxin_save_v1';
 const ENDING_KEY = 'yangxin_endings_v1';
 const DEV = /[?&]dev=1/.test(location.search);
@@ -488,11 +540,11 @@ document.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Ent
 
 /* ---------- 覆蓋層 ---------- */
 function openOv(html, bottom){
-  const o = $('ov'); o.onclick = null; o.innerHTML = html;
+  const o = $('ov'); o.onclick = null; o.innerHTML = html; o.classList.remove('titleOv'); document.body.classList.remove('onTitle');
   o.classList.toggle('bottom', !!bottom); document.body.classList.toggle('ovBottom', !!bottom);
   o.classList.remove('hidden'); o.scrollTop = 0; return o;
 }
-function closeOv(){ $('ov').classList.add('hidden'); $('ov').classList.remove('bottom'); document.body.classList.remove('ovBottom'); $('ov').innerHTML = ''; }
+function closeOv(){ $('ov').classList.add('hidden'); $('ov').classList.remove('bottom', 'titleOv'); document.body.classList.remove('onTitle'); document.body.classList.remove('ovBottom'); $('ov').innerHTML = ''; }
 function showChapterCard(sc){
   waitingTap = false; $('text').textContent = ''; $('name').textContent = ''; $('next').classList.add('hidden');
   const o = openOv(`<div class="chapCard">${sc.title ? `<h1>${esc(R(sc.title))}</h1>` : ''}${sc.sub ? `<h2>${esc(R(sc.sub))}</h2>` : ''}<p>點一下繼續</p></div>`);
@@ -859,17 +911,23 @@ function titleScreen(restart){
   setBg('gate'); $('chars').innerHTML = ''; $('chap').textContent = ''; $('rankBox').textContent = ''; $('scoreBox').textContent = '積分 0';
   const has = !restart && S && !S.ended && (S.idx > 0 || S.scene !== STORY.start);
   const plays = S ? S.plays + 1 : 1;
-  const o = openOv(`<div class="card title">
-    <h1>氧心殿</h1><div class="subt">八下理化・氧化還原　宮鬥推理冒險</div>
-    ${has ? `<button class="btn primary" id="tCont">繼續遊戲（${esc(S.name)}・${ELEMENTS[S.me].zh}）</button>` : ''}
-    <label class="f">座號＋姓名（成績卡會顯示）</label>
-    <input class="name" id="tName" maxlength="20" placeholder="例如：805 王小明" value="${S ? esc(S.name) : ''}">
-    <label class="f">${has ? '或者從頭開始一局新的——' : ''}你的性別：</label>
-    <div class="gender"><button class="btn" id="tF">女生</button><button class="btn" id="tM">男生</button></div>
-    <div class="fb bad" id="tErr"></div>
-    ${endingListHtml()}
-    <div class="copy">© 2026 蕭妤真　版權所有</div>
-  </div>`.replace('{皇上}', '皇上'));
+  const got = getEndings();
+  const ends = Object.keys(STORY.endings).map(k => got.includes(k)
+    ? `<span class="e on" title="${esc(R(STORY.endings[k].name))}">${esc(R(STORY.endings[k].name))}</span>` : '<span class="e">？</span>').join('');
+  const o = openOv(`<div class="tWrap">
+    <div class="tHero"><div class="tKicker">八下理化・氧化還原</div><h1>氧心殿</h1>
+      <div class="tRule"><i></i><b></b><i></i></div><div class="tSub">宮鬥推理冒險</div></div>
+    <div class="tPanel"><span class="cn a"></span><span class="cn b"></span><span class="cn c"></span><span class="cn d"></span>
+      ${has ? `<button class="tCont" id="tCont">繼續遊戲<small>${esc(S.name)}・${ELEMENTS[S.me].zh}</small></button>` : ''}
+      <label class="tLab" for="tName">座號＋姓名</label>
+      <input class="tName" id="tName" maxlength="20" placeholder="例如：805 王小明" value="${S ? esc(S.name) : ''}">
+      <label class="tLab" style="margin-top:12px">${has ? '或從頭開始新的一局・' : ''}你的性別</label>
+      <div class="tSex"><button class="tSeal" id="tF"><span class="seal">鳳</span>女生</button><button class="tSeal m" id="tM"><span class="seal">龍</span>男生</button></div>
+      <div class="fb bad" id="tErr"></div>
+      <div class="tEnds"><span class="lb">結局 ${got.length}/${Object.keys(STORY.endings).length}</span>${ends}</div>
+      <div class="tCopy">© 2026 蕭妤真　版權所有</div>
+    </div></div>`);
+  o.classList.add('titleOv'); document.body.classList.add('onTitle');
   o.onclick = e => e.stopPropagation();
   if ($('tCont')) $('tCont').onclick = () => { closeOv(); preloadArt(S.ver); setBg(S.bg || 'gate'); renderChars(null); updateTop(); resumeView(); };
   const start = ver => {
