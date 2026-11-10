@@ -18,6 +18,11 @@ const RANKS = {
   zhao: ['落選邊緣','候補','入圍','前十','前五','前三','首選'],
 };
 const START_RANK = { strong:3, mid:2, weak:1 };
+/* 聖眷（招親篇＝公主青睞）：答題影響皇上的好感。開局 50，答對 +6、答錯 −10（亂猜划不來）。
+   第 1、2、3、4、6 個隨機小事件之前，皇上依聖眷審閱：≥70 晉一級、≤35 降一級。 */
+const FAVOR = { start:50, right:6, wrong:-10, hi:70, lo:35, at:[1,2,3,4,6] };
+const favorAfter = (f, ok) => Math.max(0, Math.min(100, (typeof f === 'number' ? f : FAVOR.start) + (ok ? FAVOR.right : FAVOR.wrong)));
+const reviewOf = f => f >= FAVOR.hi ? 1 : f <= FAVOR.lo ? -1 : 0;
 
 /* 幕後黑手：每一局從汞、鉛、銀、錫裡隨機抽一位（不會是玩家自己）；同一局固定不變（看 seed）。
    盟友：平常是碳；玩家抽到碳時換成鋅 */
@@ -85,6 +90,7 @@ function condOk(c, st){
   if (c.notme) return !c.notme.includes(st.me);
   if (c.tier) return E[st.me].tier === c.tier;
   if (c.rankGte !== undefined) return (st.rank || 0) >= c.rankGte;
+  if (c.favorGte !== undefined) return (typeof st.favor === 'number' ? st.favor : 50) >= c.favorGte;   // 聖眷夠高
   if (c.flag) {
     const v = (st.flags || {})[c.flag];
     if (c.in) return c.in.includes(v);
@@ -148,6 +154,53 @@ function dynQuestion(st, n, opps, pick){
 }
 const DUEL_COUNT = 3;
 
-const api = { fireLeaderOf, goldLeaderOf, randomEventOf, TEA_POOL, teaVictimOf, pickBySeed, VILLAIN_POOL, TERMS, RANKS, START_RANK, villainOf, allyOf, resolveKey, nameOf, render, condOk, rng, duelOpponents, duelOutcome, dynQuestion, DUEL_COUNT, steal };
+/* 作答後的反應（Helen：不直接寫答對／答錯，看問話的人的台詞與表情）。@＝問話的人的代號 */
+const REACT = {
+  O:     { right:['O:normal|好。[[朕||本宮]]沒看錯你。', 'O:normal|說得明白。[[朕||本宮]]記住了。', 'O:normal|（點了點頭）嗯，有見識。'],
+           wrong:['O:angry|……[[朕||本宮]]還以為你懂。', 'O:angry|（皺起眉頭）罷了。', 'O:angry|這話，你自己信嗎？'] },
+  qd:    { right:['qd:normal|嗯，有幾分見識。', 'qd:normal|（端起茶，微微一笑）說得不錯。'],
+           wrong:['qd:angry|哼，這點道理都不明白？', 'qd:angry|[[哀家||本宮]]看你，還差得遠。'] },
+  S:     { right:['S:normal|答得好，我記下了。', 'S:normal|（在冊子上畫了一個圈）不錯。'],
+           wrong:['S:sad|……這樣答，可是要吃虧的。', 'S:sad|（輕輕搖頭，在冊子上記了一筆）'] },
+  vi:    { right:['vi:normal|{小主}好厲害！小維都聽懂了！', 'vi:normal|原來如此！{小主}真聰明！'],
+           wrong:['vi:sad|{小主}……是這樣嗎？小維總覺得哪裡怪怪的。', 'vi:sad|（小維歪著頭，欲言又止）'] },
+  ally:  { right:['@:normal|果然沒看錯你。', '@:normal|（笑了）跟你說話真省事。'],
+           wrong:['@:sad|……你確定？', '@:sad|（嘆了口氣）你再想想吧。'] },
+  peer:  { right:['@:normal|……原來如此，你懂得真多。', '@:normal|（眼睛一亮）對耶，我怎麼沒想到。'],
+           wrong:['@:sad|……是這樣嗎？我好像聽人說過不一樣的。', '@:sad|（面露遲疑）嗯……也許吧。'] },
+  rival: { right:['@:angry|……哼，算你運氣好。', '@:angry|（咬了咬唇）你倒是挺會說的。'],
+           wrong:['@:smug|（掩嘴輕笑）原來你也不過如此。', '@:smug|呵，這樣也敢說出口？'] },
+  self:  { right:['|你心裡一亮——一切都說得通了。', '|線索一下子串了起來。'],
+           wrong:['|你總覺得哪裡沒想通，心裡悶悶的。', '|好像有什麼地方不對勁……可是你說不上來。'] },
+};
+/* 題目前最後一位說話的人（旁白、路人、玩家自己 → 內心獨白） */
+function askerOf(lines, idx, st){
+  for (let i = idx - 1; i >= 0; i--) {
+    const it = lines[i];
+    const l = typeof it === 'string' ? it : it && it.line && (!it.when || condOk(it.when, st)) ? it.line : '';
+    if (!l) continue;
+    return l.split('|')[0];   // 含表情，例如 'Na:smug'
+  }
+  return '';
+}
+function reactRole(spk, st){
+  const [id, ex] = String(spk || '').split(':');
+  if (!id || id === 'me' || id === 'x') return 'self';
+  const k = resolveKey(id, st);
+  if (k === st.me) return 'self';
+  if (k === 'O' || k === 'qd' || k === 'S' || k === 'vi') return k;
+  if (k === resolveKey('A', st)) return 'ally';
+  return k === villainOf(st) || ex === 'smug' || ex === 'angry' ? 'rival' : 'peer';   // 犯人或正在得意／生氣的人才冷嘲熱諷
+}
+function reactLine(st, qid, asker, ok){
+  const role = reactRole(asker, st), askerId = String(asker || '').split(':')[0];
+  const arr = REACT[role][ok ? 'right' : 'wrong'];
+  let h = mix(((st.seed || 1) >>> 0) ^ 0x2545f491);
+  for (const ch of String(qid)) h = mix((h ^ ch.charCodeAt(0)) >>> 0);
+  const line = arr[h % arr.length];
+  return line.replace(/^@/, askerId);
+}
+
+const api = { REACT, askerOf, reactRole, reactLine, FAVOR, favorAfter, reviewOf, fireLeaderOf, goldLeaderOf, randomEventOf, TEA_POOL, teaVictimOf, pickBySeed, VILLAIN_POOL, TERMS, RANKS, START_RANK, villainOf, allyOf, resolveKey, nameOf, render, condOk, rng, duelOpponents, duelOutcome, dynQuestion, DUEL_COUNT, steal };
 if (typeof module !== 'undefined') module.exports = api; else root.CORE = api;
 })(this);

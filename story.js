@@ -675,7 +675,7 @@ fin_1: { title:'終章', sub:'[[立后大典||擇婿大典]]', lines:[
   'qd|你這一年，[[哀家||本宮]]都看在眼裡。',
   'qd|[[哀家||本宮]]只問你一句：若讓你選——誰該當[[皇后||駙馬]]？',
   {choice:[
-    { t:'我自己', cond:{rankGte:4}, set:{fin:'self'} },
+    { t:'我自己', cond:{all:[{rankGte:4}, {favorGte:50}]}, set:{fin:'self'} },   // 位分夠高，而且{O}對你有好感
     { t:'推舉{N:Au}', cond:{notme:['Au']}, set:{fin:'stable'} },
     { t:'推舉{N:Cu}', cond:{all:[{flag:'c1', in:['A','C']}, {notme:['Cu']}]}, set:{fin:'stable'} },
     { t:'推舉盟友{N:A}', cond:{flag:'c2', eq:'yes'}, set:{fin:'ally'} },

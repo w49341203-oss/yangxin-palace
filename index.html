@@ -39,7 +39,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .pill{display:inline-block;font-size:clamp(12px,1.7vw,15px);font-weight:700;background:rgba(0,0,0,.55);padding:4px 12px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line)}
 .pill:empty{display:none}
 #rankBox{color:var(--gold2)}
-#scoreBox{font-weight:900;font-size:clamp(14px,2vw,19px);color:var(--gold);background:rgba(0,0,0,.5);padding:4px 12px;border-radius:999px;border:1px solid rgba(234,179,8,.45);white-space:nowrap}
+#scoreBox{display:none!important;font-weight:900;font-size:clamp(14px,2vw,19px);color:var(--gold);background:rgba(0,0,0,.5);padding:4px 12px;border-radius:999px;border:1px solid rgba(234,179,8,.45);white-space:nowrap}
 .iconBtn{background:rgba(0,0,0,.5);border:1px solid var(--line);border-radius:10px;min-width:40px;height:38px;font-size:18px}
 /* 對話框 */
 #box{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);width:min(980px,calc(100% - 24px));
@@ -117,6 +117,9 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
 .series{font-size:clamp(13px,2vw,16px);color:var(--dim);margin:8px 0;letter-spacing:.05em}
 .series b{color:var(--gold2);font-size:1.25em}
 /* 出招 */
+.react{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:10px}
+.rname{padding:3px 12px;border-radius:8px;font-weight:900;color:#1a0b10}
+.qprompt.narr{font-style:italic;color:var(--dim)}
 .duelHead{font-family:"Noto Serif TC",serif;font-size:clamp(20px,3.5vw,28px);color:var(--gold2);font-weight:900}
 .eq{font-size:clamp(17px,2.6vw,22px);background:rgba(0,0,0,.3);border-radius:10px;padding:8px 12px;margin:8px 0;text-align:center}
 .rankUp{color:var(--jade);font-weight:900} .rankDown{color:var(--bad);font-weight:900}
@@ -176,14 +179,14 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
 </div>
 
-<script src="elements.js?v=0.9"></script>
-<script src="core.js?v=0.9"></script>
-<script src="figs.js?v=0.9"></script>
-<script src="questions.js?v=0.9"></script>
-<script src="story.js?v=0.9"></script>
+<script src="elements.js?v=1.0"></script>
+<script src="core.js?v=1.0"></script>
+<script src="figs.js?v=1.0"></script>
+<script src="questions.js?v=1.0"></script>
+<script src="story.js?v=1.0"></script>
 <script>
 'use strict';
-const VERSION = 'v0.9';
+const VERSION = 'v1.0';
 const SAVE_KEY = 'yangxin_save_v1';
 const ENDING_KEY = 'yangxin_endings_v1';
 const DEV = /[?&]dev=1/.test(location.search);
@@ -207,7 +210,7 @@ function fixState(s){
     name: String(s.name || ''), ver: s.ver, me: s.me, seed: Number(s.seed) || 1,
     scene: STORY.scenes[s.scene] ? s.scene : STORY.start, idx: Number.isInteger(s.idx) && s.idx >= 0 ? s.idx : 0,
     rank: Math.max(0, Math.min(6, Number.isInteger(s.rank) ? s.rank : START_RANK[ELEMENTS[s.me].tier])),
-    done: obj(s.done), missed: obj(s.missed), wrong: Number(s.wrong) || 0, flags: obj(s.flags),
+    done: obj(s.done), missed: obj(s.missed), wrong: Number(s.wrong) || 0, favor: typeof s.favor === 'number' && s.favor >= 0 && s.favor <= 100 ? s.favor : CORE.FAVOR.start, flags: obj(s.flags),
     dyn: obj(s.dyn), duel: s.duel && typeof s.duel === 'object' ? s.duel : null,
     ret: s.ret && typeof s.ret === 'object' ? s.ret : null,
     bg: s.bg || null, show: arr(s.show), chap: typeof s.chap === 'string' ? s.chap : '', needCard: !!s.needCard,
@@ -430,6 +433,7 @@ function run(){
     if (it.ending) { save(); return showEnding(it.ending); }
     if (it.result) { save(); return showResult(true); }
     if (it.rand) {   // 隨機宮中小事件：記下回來的位置，跳去事件場景
+      if (CORE.FAVOR.at.includes(it.rand) && !S.flags['_rv' + it.rand]) { save(); return showReview(it.rand); }   // 先由{O}依聖眷審閱
       const ev = CORE.randomEventOf(S, it.rand, STORY.randomEvents);
       S.ret = { scene: S.scene, idx: S.idx + 1, bg: S.bg, chap: S.chap };
       return goScene(ev);
@@ -655,7 +659,7 @@ function showQuestion(id, after){
   const needSubmit = q.type !== 'single';
   const figHtml = q.figSvg ? `<div class="qfig">${q.figSvg}</div>` : q.fig && FIGS[q.fig] ? `<div class="qfig">${FIGS[q.fig]}</div>` : '';
   const o = openOv(`<div class="card ${figHtml ? 'hasFig' : ''}">
-    <div class="qhead"><span class="tag">${q.dyn ? '奪寵之後' : '宮中考驗'}・${typeName}</span><span id="qpts">${S.missed[id] ? '（再試一次，這題已不計分）' : `答對 +${pts}`}</span></div>
+    <div class="qhead"><span class="tag">${q.dyn ? '奪寵之後' : '宮中考驗'}・${typeName}</span><span id="qpts">只能作答一次</span></div>
     <div class="qgrid"><div class="qleft"><div class="qprompt">${esc(R(q.prompt))}</div>${figHtml}</div>
     <div class="qright">${body}${needSubmit ? '<button class="btn primary" id="submit">送出</button>' : ''}<div class="fb" id="fb"></div>
     ${DEV ? `<div class="dev">【測試】答案：${esc(R(JSON.stringify(q.answer || (q.rows ? q.rows.map(r => r.ans) : q.ans))))}　題號：${id}</div>` : ''}</div></div></div>`, true);
@@ -664,22 +668,15 @@ function showQuestion(id, after){
   let locked = false, sel = new Set(), seq = [];
   const pick = {}, cells = {};
   const finish = () => { if (after) after(); else { S.idx++; save(); run(); } };
-  const check = ok => {
+  const asker = after ? 'O' : CORE.askerOf(STORY.scenes[S.scene].lines, S.idx, S);   // 出招後的題目由{O}問
+  const check = ok => {          // Helen：每題只答一次，答完就往下；從對方的反應看出對錯
     if (locked) return; locked = true;
-    if (ok) {
-      const gain = S.missed[id] ? 0 : pts;
-      S.done[id] = gain; save(); updateTop();
-      sfx('right'); fb.className = 'fb ok'; fb.textContent = gain ? `答對了！+${gain}` : '答對了！';
-      setTimeout(finish, 900);
-    } else {
-      S.missed[id] = true; S.wrong++; save();
-      let extra = '';
-      if (q.type === 'match' && q.rows.length >= 4) extra = `（有 ${q.rows.filter((r, i) => r.opts[pick[i]] !== r.ans).length} 個放錯）`;
-      if (q.type === 'grid') extra = `（有 ${q.ans.filter((a, i) => a !== 'X' && cells[i] !== a).length} 格不對）`;
-      sfx('wrong'); fb.className = 'fb bad'; fb.textContent = '再想想看～' + extra + (q.hint ? '\n提示：' + R(q.hint) : '');
-      $('qpts').textContent = '（再試一次，這題已不計分）';
-      setTimeout(() => { locked = false; }, 700);
-    }
+    S.done[id] = ok && !S.missed[id] ? pts : 0;
+    if (!ok) { S.missed[id] = true; S.wrong++; }
+    S.favor = CORE.favorAfter(S.favor, ok);
+    save();
+    sfx(ok ? 'right' : 'wrong');
+    showReaction(o, CORE.reactLine(S, id, asker, ok), finish);
   };
   o.querySelectorAll('.opt').forEach(b => b.onclick = () => {
     if (locked) return; const i = +b.dataset.i;
@@ -702,6 +699,49 @@ function showQuestion(id, after){
     if (q.type === 'match') { if (Object.keys(pick).length < q.rows.length) { fb.className = 'fb bad'; fb.textContent = '每一項都要選喔'; return; } check(q.rows.every((r, i) => r.opts[pick[i]] === r.ans)); }
     if (q.type === 'grid') { const need = q.ans.filter(a => a !== 'X').length; if (Object.keys(cells).length < need) { fb.className = 'fb bad'; fb.textContent = '每一格都要填喔'; return; } check(q.ans.every((a, i) => a === 'X' || cells[i] === a)); }
   };
+}
+
+/* 作答後：題目卡換成問話的人的一句話＋表情（不寫答對／答錯） */
+function showReaction(o, line, next){
+  const bar = line.indexOf('|');
+  const spk = line.slice(0, bar), text = R(line.slice(bar + 1));
+  const [id, ex] = spk.split(':');
+  let nmHtml = '';
+  if (id) {
+    const p = personOf(id);
+    if (!(S.show || []).some(e => resolveKey(String(e).split(':')[0], S) === p.key)) S.show = [id + ':' + (ex || 'normal')];
+    else setExpr(id, ex || 'normal');
+    renderChars(p.key);
+    nmHtml = `<span class="rname" style="background:${p.color}">${esc(p.name)}</span>`;
+  }
+  const card = o.querySelector('.card');
+  card.classList.remove('hasFig');
+  card.innerHTML = `<div class="react">${nmHtml}<div class="qprompt ${id ? '' : 'narr'}">${esc(text)}</div></div><button class="btn primary" id="rGo">繼續</button>`;
+  let gone = false;
+  $('rGo').onclick = () => { if (gone) return; gone = true; next(); };
+}
+/* 皇上審閱：依聖眷晉升或貶低（每個審閱點只做一次，重新整理也不會重複） */
+function showReview(n){
+  waitingTap = false; $('next').classList.add('hidden');
+  const want = CORE.reviewOf(S.favor), before = S.rank;
+  S.flags['_rv' + n] = true;
+  if (want) changeRank(want);
+  const d = want, moved = S.rank !== before;
+  save();
+  const hi = ['[[朕||本宮]]聽說，你這陣子事事都看得明白。[[朕||本宮]]很欣慰。', '你說的話，[[朕||本宮]]句句都記得。', '這[[宮||城]]裡，就屬你最讓[[朕||本宮]]放心。', '[[朕||本宮]]身邊，正缺你這樣明白事理的人。', '一年了，你從沒讓[[朕||本宮]]失望過。'];
+  const mid = ['你還算安分。[[朕||本宮]]再看看。', '（{O}看了你一會兒，沒有說話。）', '嗯……你最近，不好不壞。', '[[朕||本宮]]聽過你的事，有好有壞。', '日子還長，[[朕||本宮]]等著看。'];
+  const lo = ['[[朕||本宮]]聽到不少閒話——說你連簡單的道理都弄錯。', '你最近說的話，[[朕||本宮]]一句也不想再聽。', '[[朕||本宮]]原以為你是個明白人。', '這樣下去，[[朕||本宮]]很難再護著你。', '[[朕||本宮]]對你，很失望。'];
+  const k = Math.max(0, CORE.FAVOR.at.indexOf(n)) % 5;
+  const say = d > 0 ? hi[k] : d < 0 ? lo[k] : mid[k];
+  const after = d > 0 ? (moved ? `{O}下旨：晉你的位分為「${RANKS[S.ver][S.rank]}」。` : '{O}賞了你一柄玉如意。你的位分已經是最高了。') : d < 0 ? (moved ? `{O}拂袖而去。你的位分被降為「${RANKS[S.ver][S.rank]}」。` : '{O}拂袖而去。你的位分已經不能再低了。') : '';
+  S.show = ['O:' + (d < 0 ? 'angry' : 'normal')]; renderChars('O');
+  const p = personOf('O');
+  const o = openOv(`<div class="card"><div class="react"><span class="rname" style="background:${p.color}">${esc(p.name)}</span>
+    <div class="qprompt">${esc(R(say))}</div>${after ? `<div class="${d > 0 ? 'rankUp' : 'rankDown'}">${esc(R(after))}</div>` : ''}</div>
+    <button class="btn primary" id="rvGo">繼續</button></div>`, true);
+  o.onclick = e => e.stopPropagation();
+  let gone = false;
+  $('rvGo').onclick = () => { if (gone) return; gone = true; run(); };
 }
 
 /* ---------- 結局 ---------- */
