@@ -32,8 +32,6 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .char{height:100%;flex:0 1 30%;max-width:360px;display:flex;align-items:flex-end;justify-content:center;transition:filter .3s,transform .3s;filter:brightness(.5) saturate(.7);transform:translateY(8px)}
 .char.talk{filter:none;transform:none}
 .char img{max-height:100%;max-width:100%;object-fit:contain}
-.ph{width:100%;height:90%;position:relative;display:flex;align-items:flex-end;justify-content:center}
-.ph svg{height:100%;width:auto;max-width:100%}
 /* 上方列 */
 #top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;background:linear-gradient(180deg,rgba(0,0,0,.65),transparent);z-index:5}
 #chapWrap{flex:1;min-width:0;display:flex;gap:6px;align-items:center}
@@ -164,6 +162,7 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   <div id="top">
     <div id="chapWrap"><span class="pill" id="chap"></span><span class="pill" id="rankBox"></span></div>
     <div id="scoreBox">積分 0</div>
+    <button class="iconBtn" id="sndBtn" title="聲音開關">🔊</button>
     <button class="iconBtn" id="fsBtn" title="全螢幕">⛶</button>
     <button class="iconBtn" id="menuBtn" title="選單">☰</button>
   </div>
@@ -174,14 +173,14 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
 </div>
 
-<script src="elements.js?v=0.5"></script>
-<script src="core.js?v=0.5"></script>
-<script src="figs.js?v=0.5"></script>
-<script src="questions.js?v=0.5"></script>
-<script src="story.js?v=0.5"></script>
+<script src="elements.js?v=0.7"></script>
+<script src="core.js?v=0.7"></script>
+<script src="figs.js?v=0.7"></script>
+<script src="questions.js?v=0.7"></script>
+<script src="story.js?v=0.7"></script>
 <script>
 'use strict';
-const VERSION = 'v0.5';
+const VERSION = 'v0.7';
 const SAVE_KEY = 'yangxin_save_v1';
 const ENDING_KEY = 'yangxin_endings_v1';
 const DEV = /[?&]dev=1/.test(location.search);
@@ -219,6 +218,102 @@ function qOf(id){ ensureQS(); return QS[id] || (S.dyn && S.dyn[id]) || null; }
 function recalcScore(){ return Object.keys(S.done).reduce((t, k) => { const q = qOf(k); return t + (q && S.done[k] ? (q.pts || 10) : 0); }, 0); }
 setInterval(() => { if (S && !document.hidden && !S.ended) { S.playMs += 1000; if (S.playMs % 10000 === 0) save(); } }, 1000);
 
+/* ---------- 聲音：音效用 Web Audio 即時合成（零檔案）；背景音樂讀 music/bgm_*.mp3（沒有檔案就安靜） ---------- */
+const SOUND_KEY = 'yangxin_sound_v1';
+const SND = { on: storeGet(SOUND_KEY) !== false, ctx: null, master: null, sfx: null, mus: null, cur: '', el: null, elGain: null, want: '' };
+function audioInit(){
+  if (SND.ctx) { if (SND.ctx.state === 'suspended') SND.ctx.resume(); return true; }
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
+  try {
+    SND.ctx = new AC();
+    SND.master = SND.ctx.createGain(); SND.master.gain.value = SND.on ? 1 : 0; SND.master.connect(SND.ctx.destination);
+    SND.sfx = SND.ctx.createGain(); SND.sfx.gain.value = 0.35; SND.sfx.connect(SND.master);
+    SND.mus = SND.ctx.createGain(); SND.mus.gain.value = 0.22; SND.mus.connect(SND.master);
+  } catch(e){ SND.ctx = null; return false; }
+  if (SND.want) playMusic(SND.want, true);
+  return true;
+}
+/* 手機、平板規定：第一次點畫面之後才能出聲 */
+['pointerdown','touchstart','keydown'].forEach(ev => document.addEventListener(ev, audioInit, { passive: true }));
+function tone(f, t0, dur, type, vol, f2){
+  const c = SND.ctx, o = c.createOscillator(), g = c.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(SND.sfx); o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function pluck(f, t0, vol){ tone(f, t0, 0.9, 'triangle', vol || 0.5); tone(f * 2, t0, 0.35, 'sine', (vol || 0.5) * 0.3); }   // 像古箏撥弦
+function noise(t0, dur, vol, fFrom, fTo){
+  const c = SND.ctx, n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const s = c.createBufferSource(); s.buffer = buf;
+  const flt = c.createBiquadFilter(); flt.type = 'bandpass'; flt.Q.value = 1.2; flt.frequency.setValueAtTime(fFrom, t0); flt.frequency.exponentialRampToValueAtTime(fTo, t0 + dur);
+  const g = c.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + dur * 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  s.connect(flt); flt.connect(g); g.connect(SND.sfx); s.start(t0); s.stop(t0 + dur);
+}
+const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.5];   // 五聲音階：宮商角徵羽
+function sfx(name){
+  if (!SND.on || !SND.ctx) return;
+  try {
+    const t = SND.ctx.currentTime + 0.01;
+    switch (name) {
+      case 'tap':    tone(1500, t, 0.05, 'sine', 0.12, 900); break;                      // 翻頁：輕輕的木頭聲
+      case 'pick':   pluck(PENTA[3], t, 0.45); break;                                     // 做選擇
+      case 'right':  pluck(PENTA[2], t); pluck(PENTA[4], t + 0.09); pluck(PENTA[5], t + 0.18); break;
+      case 'wrong':  tone(220, t, 0.35, 'triangle', 0.4, 150); tone(233, t + 0.02, 0.3, 'sine', 0.2, 160); break;
+      case 'up':     [0, 1, 2, 3, 5].forEach((k, i) => pluck(PENTA[k], t + i * 0.07, 0.38)); break;
+      case 'down':   [5, 3, 2, 1, 0].forEach((k, i) => pluck(PENTA[k] / 2, t + i * 0.09, 0.38)); break;
+      case 'drum':   tone(110, t, 0.5, 'sine', 0.9, 45); noise(t, 0.12, 0.25, 900, 200); tone(110, t + 0.22, 0.45, 'sine', 0.7, 45); break;   // 出招：太鼓兩聲
+      case 'win':    [0, 2, 4, 5, 7].forEach((k, i) => pluck(PENTA[k], t + i * 0.06, 0.4)); tone(1046.5, t + 0.32, 1.6, 'sine', 0.22); tone(1568, t + 0.32, 1.2, 'sine', 0.1); break;
+      case 'lose':   tone(196, t, 0.6, 'triangle', 0.4, 130); tone(98, t + 0.05, 0.7, 'sine', 0.5, 60); break;
+      case 'whoosh': noise(t, 0.45, 0.35, 300, 3000); break;                              // 閃光、火焰
+      case 'bell':   tone(880, t, 1.8, 'sine', 0.3); tone(1777, t, 1.0, 'sine', 0.1); tone(2637, t, 0.6, 'sine', 0.05); break;
+    }
+  } catch(e){}
+}
+/* 背景音樂：淡入淡出切換；檔案不存在就自動安靜 */
+const MUSIC = { title:'music/bgm_title.mp3', daily:'music/bgm_daily.mp3', tension:'music/bgm_tension.mp3', duel:'music/bgm_duel.mp3', sad:'music/bgm_sad.mp3', ending:'music/bgm_ending.mp3' };
+const musicMissing = {};
+function playMusic(name, force){
+  SND.want = name;
+  if (!SND.ctx || (!force && SND.cur === name)) return;
+  SND.cur = name;
+  const c = SND.ctx, now = c.currentTime;
+  if (SND.el) {
+    const oldEl = SND.el, oldG = SND.elGain;
+    oldG.gain.cancelScheduledValues(now); oldG.gain.setValueAtTime(oldG.gain.value, now); oldG.gain.linearRampToValueAtTime(0, now + 1.2);
+    setTimeout(() => { try { oldEl.pause(); oldG.disconnect(); } catch(e){} }, 1400);
+    SND.el = null;
+  }
+  const src = MUSIC[name]; if (!src || musicMissing[src]) return;
+  const el = new Audio(); el.loop = true; el.preload = 'auto';
+  el.onerror = () => { musicMissing[src] = true; };
+  el.src = src;
+  try {
+    const node = c.createMediaElementSource(el), g = c.createGain();
+    g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(1, now + 1.5);
+    node.connect(g); g.connect(SND.mus);
+    SND.el = el; SND.elGain = g;
+    const p = el.play(); if (p && p.catch) p.catch(() => {});
+  } catch(e){}
+}
+/* 依目前劇情決定配樂 */
+function musicForScene(){
+  if (!S) return 'title';
+  const id = S.scene || '', bg = S.bg || '';
+  if (/^(fin_|end_)/.test(id)) return 'ending';
+  if (bg === 'cold') return 'sad';
+  if (bg === 'fire' || /^(vil_|ch5_)/.test(id)) return 'tension';
+  if (/^pro_/.test(id)) return 'title';
+  return 'daily';
+}
+function setSound(on){
+  SND.on = on; storeSet(SOUND_KEY, on);
+  $('sndBtn').textContent = on ? '🔊' : '🔇';
+  audioInit();
+  if (SND.master) { const now = SND.ctx.currentTime; SND.master.gain.cancelScheduledValues(now); SND.master.gain.setValueAtTime(on ? 1 : 0, now); }
+}
+
 /* ---------- 畫面 ---------- */
 const bgOk = {};
 function setBg(key){
@@ -232,7 +327,7 @@ function setBg(key){
   img.onerror = () => { bgOk[file] = false; };
   img.src = file;
 }
-function flash(color){ const f = $('flash'); f.style.background = `radial-gradient(circle at 50% 45%, ${color}, transparent 70%)`; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+function flash(color){ sfx('whoosh'); const f = $('flash'); f.style.background = `radial-gradient(circle at 50% 45%, ${color}, transparent 70%)`; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
 function toast(msg){ const t = $('toast'); t.innerHTML = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2400); }
 
 /* 角色代號 → 顯示資料。元素用 ELEMENTS；其他人物在 STORY.people */
@@ -243,19 +338,20 @@ function personOf(id){
   if (p) return { key:k, el:false, name: R(p.name), color: p.color, sym: R(p.sym || ''), both: p.both };
   return { key:k, el:false, name:k, color:'#888', sym:'' };
 }
-/* 佔位立繪（還沒有正式美術時）：古裝剪影＋元素符號＋服裝色 */
-function placeholder(p){
-  const c = p.color, gid = 'g' + Math.random().toString(36).slice(2, 7);
-  const hair = '#1c1117';
-  return `<svg viewBox="0 0 120 240" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".45"/></linearGradient></defs>
-  <path d="M14 240 C14 150 30 104 60 100 C90 104 106 150 106 240Z" fill="url(#${gid})" stroke="rgba(0,0,0,.35)"/>
-  <path d="M40 104 L60 150 L80 104" fill="none" stroke="#fde68a" stroke-width="3"/>
-  <circle cx="60" cy="62" r="26" fill="#f2d7c2"/><path d="M33 60 C33 30 87 30 87 60 C80 44 40 44 33 60Z" fill="${hair}"/>
-  <path d="M40 30 C50 14 70 14 80 30" fill="${hair}"/>
-  ${p.sym ? `<text x="60" y="200" text-anchor="middle" font-size="34" font-weight="900" fill="#1c1117" opacity=".75" font-family="serif">${esc(p.sym)}</text>` : ''}
-  <rect x="20" y="214" width="80" height="22" rx="6" fill="rgba(0,0,0,.55)"/><text x="60" y="230" text-anchor="middle" font-size="13" fill="#fff">${esc(p.name)}</text></svg>`;
-}
 const imgOk = {};
+const preloaded = {};
+function preloadArt(ver){
+  if (preloaded[ver]) return; preloaded[ver] = true;
+  const list = [];
+  Object.entries(STORY.bgs).forEach(([k, b]) => list.push(b.both ? `img/bg_${k}.webp` : `img/bg_${ver}_${k}.webp`));
+  const keep = [];
+  const ex = ['normal','smug','angry','sad'];
+  [...ORDER, 'O', 'qd'].forEach(k => ex.forEach(e => list.push(`img/${ver}_${k}_${e}.webp`)));
+  ['S','vi'].forEach(k => ex.forEach(e => list.push(`img/${k}_${e}.webp`)));
+  let i = 0;
+  const next = () => { if (i >= list.length) return; const im = new Image(); keep.push(im); im.onload = im.onerror = next; im.src = list[i++]; };
+  for (let n = 0; n < 4; n++) next();   // 同時 4 張
+}
 function charFile(p, expr){ return p.both ? `img/${p.key}_${expr}.webp` : `img/${S.ver}_${p.key}_${expr}.webp`; }
 function renderChars(speakerKey){
   const box = $('chars'); box.innerHTML = '';
@@ -266,15 +362,15 @@ function renderChars(speakerKey){
     const d = document.createElement('div');
     d.className = 'char' + (!speakerKey || p.key === speakerKey ? ' talk' : '');
     const tries = [charFile(p, ex || 'normal'), charFile(p, 'normal')].filter((f, i, a) => a.indexOf(f) === i && imgOk[f] !== false);
-    const ph = () => { d.innerHTML = `<div class="ph">${placeholder(p)}</div>`; };
     const tryNext = () => {
-      const f = tries.shift(); if (!f) return ph();
+      const f = tries.shift(); if (!f) return;      // 圖真的不存在就留空，不畫替代圖形
       const im = new Image(); im.alt = p.name;
       im.onload = () => { imgOk[f] = true; d.innerHTML = ''; d.appendChild(im); };
       im.onerror = () => { imgOk[f] = false; tryNext(); };
       im.src = f;
+      if (im.complete && im.naturalWidth) { imgOk[f] = true; d.appendChild(im); }   // 已預先載入：立刻顯示，不閃
     };
-    ph(); tryNext();
+    tryNext();
     box.appendChild(d);
   });
 }
@@ -310,7 +406,7 @@ function goScene(id){
 function run(){
   closeOv();
   const sc = STORY.scenes[S.scene];
-  updateTop();
+  updateTop(); playMusic(musicForScene());
   if (S.needCard) return showChapterCard(sc);
   for (let guard = 0; guard < 500; guard++) {
     const it = sc.lines[S.idx];
@@ -318,7 +414,7 @@ function run(){
     if (typeof it === 'string') return showLine(it);
     if (it.when && !condOk(it.when, S)) { S.idx++; continue; }     // 有 when 條件的台詞／動作，條件不合就跳過
     if (it.line) return showLine(it.line);
-    if (it.bg !== undefined) { S.bg = it.bg; setBg(it.bg); S.idx++; continue; }
+    if (it.bg !== undefined) { S.bg = it.bg; setBg(it.bg); playMusic(musicForScene()); S.idx++; continue; }
     if (it.show !== undefined) { S.show = it.show.slice(); renderChars(null); S.idx++; continue; }
     if (it.flash) { flash(it.flash === 'me' ? ELEMENTS[S.me].color : it.flash); S.idx++; continue; }
     if (it.set) { Object.assign(S.flags, it.set); S.idx++; continue; }
@@ -349,6 +445,7 @@ function run(){
 function changeRank(d){
   const before = S.rank;
   S.rank = Math.max(0, Math.min(6, S.rank + d));
+  if (S.rank !== before && !SND.quiet) sfx(S.rank > before ? 'up' : 'down');
   if (S.rank !== before) toast(`${S.rank > before ? '▲ 位分上升' : '▼ 位分下降'}：${RANKS[S.ver][before]} → ${RANKS[S.ver][S.rank]}`);
   updateTop();
 }
@@ -376,7 +473,7 @@ function advance(){
   if (!$('ov').classList.contains('hidden')) return;
   if (typing) { finishTyping(); return; }
   if (!waitingTap) return;
-  waitingTap = false; S.idx++; run();
+  waitingTap = false; sfx('tap'); S.idx++; run();
 }
 $('box').addEventListener('click', advance);
 $('app').addEventListener('click', e => { if (e.target.closest('#top') || e.target.closest('#ov') || e.target.closest('#box')) return; advance(); });
@@ -443,7 +540,7 @@ function showChoice(opts, prompt){
   o.onclick = e => e.stopPropagation();
   let picked = false;
   o.querySelectorAll('.btn').forEach(b => b.onclick = () => {
-    if (picked) return; picked = true;
+    if (picked) return; picked = true; sfx('pick');
     const op = avail[+b.dataset.i];
     if (op.set) Object.assign(S.flags, op.set);
     if (op.rank) changeRank(op.rank);
@@ -465,8 +562,8 @@ function showDraw(){
     <div class="series">活性順序：${series}</div>
     <button class="btn primary" id="drawGo">收下{名帖}</button></div>`.replace(/\{名帖\}/g, R('{名帖}')));
   o.onclick = e2 => e2.stopPropagation();
-  flash(e.color);
-  $('drawGo').onclick = () => { S.flags._drawn = true; S.idx++; save(); run(); };
+  flash(e.color); setTimeout(() => sfx('bell'), 250);
+  $('drawGo').onclick = () => { sfx('pick'); S.flags._drawn = true; S.idx++; save(); run(); };
 }
 
 /* ---------- 出招 ---------- */
@@ -482,7 +579,7 @@ function evOf(it){ return Array.isArray(it.ev) ? CORE.pickBySeed(S, it.ev, it.du
 function duelPick(it, D){
   waitingTap = false; $('next').classList.add('hidden');
   recordCheckpoint(R(evOf(it) || '出招')); save();
-  S.show = D.opps.slice(); renderChars(null);
+  S.show = D.opps.slice(); renderChars(null); playMusic('duel');
   const o = openOv(`<div class="card"><div class="qhead"><span class="tag">⚔ 出招</span><span>${esc(R(evOf(it)))}</span></div>
     <div class="qprompt">${esc(R(it.prompt || '{O}今晚在誰那裡？你要從誰手上把{O}請過來？'))}</div>
     <div class="opts">${D.opps.map((k, i) => `<button class="btn" data-k="${k}">挑戰 ${esc(nameOf(k, S))}（${ELEMENTS[k].ox}）</button>`).join('')}
@@ -492,10 +589,10 @@ function duelPick(it, D){
   o.onclick = e => e.stopPropagation();
   let done = false;
   o.querySelectorAll('.btn').forEach(b => b.onclick = () => {
-    if (done) return; done = true;
+    if (done) return; done = true; sfx('drum');
     D.pick = b.dataset.k || null; D.stage = 'result';
     const out = duelOutcome(S, D.pick);
-    if (out === 'win') changeRank(+1); else if (out === 'lose') changeRank(-1);
+    SND.quiet = true; if (out === 'win') changeRank(+1); else if (out === 'lose') changeRank(-1); SND.quiet = false;   // 出招有自己的勝負音效
     save(); duelResult(it, D);
   });
 }
@@ -506,10 +603,10 @@ function duelResult(it, D){
   else {
     const o = ELEMENTS[D.pick];
     S.show = [D.pick + (out === 'win' ? ':sad' : ':smug')]; renderChars(null);   // 對手的表情：被搶走→失落；你失敗→得意
-    if (out === 'win') { flash(me.color); html = `<div class="duelHead">奪寵成功！</div><div class="qprompt">${esc(R(it.win || '你一出場，{O}的目光就離不開你了。{O}從{N:' + D.pick + '}那裡起身，走向了你。'))}</div>
+    if (out === 'win') { flash(me.color); setTimeout(() => sfx('win'), 350); html = `<div class="duelHead">奪寵成功！</div><div class="qprompt">${esc(R(it.win || '你一出場，{O}的目光就離不開你了。{O}從{N:' + D.pick + '}那裡起身，走向了你。'))}</div>
       <div class="eq">${me.zh}（你） ＋ ${o.oxName} → ${me.oxName} ＋ ${o.zh}</div><div class="rankUp">你比${o.zh}活潑，搶得走氧。位分上升：${RANKS[S.ver][S.rank]}</div>`; }
-    else html = `<div class="duelHead">當眾出糗……</div><div class="qprompt">${esc(R(it.lose || '你走進{N:' + D.pick + '}的{宮}，{O}連頭都沒抬。四周傳來竊笑聲。'))}</div>
-      <div class="eq">${me.zh}（你） ＋ ${o.oxName} → 不反應</div><div class="rankDown">${o.zh}比你活潑，你搶不走${o.zh}的氧。位分下降：${RANKS[S.ver][S.rank]}</div>`;
+    else { setTimeout(() => sfx('lose'), 350); html = `<div class="duelHead">當眾出糗……</div><div class="qprompt">${esc(R(it.lose || '你走進{N:' + D.pick + '}的{宮}，{O}連頭都沒抬。四周傳來竊笑聲。'))}</div>
+      <div class="eq">${me.zh}（你） ＋ ${o.oxName} → 不反應</div><div class="rankDown">${o.zh}比你活潑，你搶不走${o.zh}的氧。位分下降：${RANKS[S.ver][S.rank]}</div>`; }
   }
   const ov = openOv(`<div class="card">${html}<button class="btn primary" id="dGo">繼續</button></div>`, true);
   ov.onclick = e => e.stopPropagation();
@@ -569,14 +666,14 @@ function showQuestion(id, after){
     if (ok) {
       const gain = S.missed[id] ? 0 : pts;
       S.done[id] = gain; save(); updateTop();
-      fb.className = 'fb ok'; fb.textContent = gain ? `答對了！+${gain}` : '答對了！';
+      sfx('right'); fb.className = 'fb ok'; fb.textContent = gain ? `答對了！+${gain}` : '答對了！';
       setTimeout(finish, 900);
     } else {
       S.missed[id] = true; S.wrong++; save();
       let extra = '';
       if (q.type === 'match' && q.rows.length >= 4) extra = `（有 ${q.rows.filter((r, i) => r.opts[pick[i]] !== r.ans).length} 個放錯）`;
       if (q.type === 'grid') extra = `（有 ${q.ans.filter((a, i) => a !== 'X' && cells[i] !== a).length} 格不對）`;
-      fb.className = 'fb bad'; fb.textContent = '再想想看～' + extra + (q.hint ? '\n提示：' + R(q.hint) : '');
+      sfx('wrong'); fb.className = 'fb bad'; fb.textContent = '再想想看～' + extra + (q.hint ? '\n提示：' + R(q.hint) : '');
       $('qpts').textContent = '（再試一次，這題已不計分）';
       setTimeout(() => { locked = false; }, 700);
     }
@@ -615,7 +712,7 @@ function endingListHtml(){
 function showEnding(id){
   waitingTap = false; $('next').classList.add('hidden');
   const e = STORY.endings[id] || { name:id, desc:'' };
-  const isNew = !getEndings().includes(id); addEnding(id);
+  const isNew = !getEndings().includes(id); addEnding(id); playMusic('ending'); sfx('bell');
   if (!S.endings.includes(id)) S.endings.push(id);
   save();
   const desc = R(e.desc);
@@ -676,6 +773,8 @@ function confirmRestart(){
   $('yes').onclick = () => titleScreen(true);
   $('no').onclick = () => { closeOv(); resumeView(); };
 }
+$('sndBtn').textContent = SND.on ? '🔊' : '🔇';
+$('sndBtn').onclick = e => { e.stopPropagation(); setSound(!SND.on); if (SND.on) sfx('pick'); };
 $('menuBtn').onclick = e => { e.stopPropagation(); if (S && $('ov').classList.contains('hidden') || S && S.ended) showMenu(); };
 function resumeView(){
   const sc = STORY.scenes[S.scene];
@@ -709,9 +808,10 @@ function newGame(name, ver, plays){
   if (DEV && ELEMENTS[params.get('me')]) me = params.get('me');       // 測試模式可指定元素：?dev=1&me=Mg
   S = fixState({ name, ver, me, seed: Math.floor(Math.random() * 2147483646) + 1, plays, scene: STORY.start, idx: 0 });
   S.needCard = true; save();
-  setBg('xiunv'); renderChars(null); run();
+  preloadArt(ver); setBg('xiunv'); renderChars(null); run();
 }
 function titleScreen(restart){
+  playMusic('title');
   setBg('gate'); $('chars').innerHTML = ''; $('chap').textContent = ''; $('rankBox').textContent = ''; $('scoreBox').textContent = '積分 0';
   const has = !restart && S && !S.ended && (S.idx > 0 || S.scene !== STORY.start);
   const plays = S ? S.plays + 1 : 1;
@@ -726,7 +826,7 @@ function titleScreen(restart){
     ${endingListHtml()}
   </div>`.replace('{皇上}', '皇上'));
   o.onclick = e => e.stopPropagation();
-  if ($('tCont')) $('tCont').onclick = () => { closeOv(); setBg(S.bg || 'gate'); renderChars(null); updateTop(); resumeView(); };
+  if ($('tCont')) $('tCont').onclick = () => { closeOv(); preloadArt(S.ver); setBg(S.bg || 'gate'); renderChars(null); updateTop(); resumeView(); };
   const start = ver => {
     const nm = $('tName').value.trim();
     if (!nm) { $('tErr').textContent = '請先輸入座號＋姓名'; return; }
