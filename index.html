@@ -135,6 +135,8 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
 .endChip.on{color:#fff;border-color:var(--gold);background:rgba(234,179,8,.15)}
 #toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:12;background:rgba(0,0,0,.8);border:1px solid var(--line);padding:8px 18px;border-radius:999px;font-weight:900;opacity:0;transition:opacity .4s;pointer-events:none;white-space:nowrap}
 #toast.on{opacity:1}
+/* 版權宣告 */
+.copy{margin-top:12px;font-size:13px;color:var(--dim);text-align:center;letter-spacing:1px}
 #ver{position:absolute;right:8px;bottom:2px;font-size:11px;color:rgba(255,255,255,.4);z-index:20;pointer-events:none}
 .hidden{display:none!important}
 /* 手機橫拿（高度很矮）：字和間距縮小，題目框可以佔滿高度 */
@@ -173,14 +175,14 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
 </div>
 
-<script src="elements.js?v=0.7"></script>
-<script src="core.js?v=0.7"></script>
-<script src="figs.js?v=0.7"></script>
-<script src="questions.js?v=0.7"></script>
-<script src="story.js?v=0.7"></script>
+<script src="elements.js?v=0.8"></script>
+<script src="core.js?v=0.8"></script>
+<script src="figs.js?v=0.8"></script>
+<script src="questions.js?v=0.8"></script>
+<script src="story.js?v=0.8"></script>
 <script>
 'use strict';
-const VERSION = 'v0.7';
+const VERSION = 'v0.8';
 const SAVE_KEY = 'yangxin_save_v1';
 const ENDING_KEY = 'yangxin_endings_v1';
 const DEV = /[?&]dev=1/.test(location.search);
@@ -736,6 +738,7 @@ function showResult(fromStory){
     <div class="big">${recalcScore()}</div>
     <div class="max">總分（滿分 ${MAX_SCORE}）</div>
     <div style="color:var(--dim);font-size:14px;margin-top:8px">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}　${VERSION}</div>
+    <div class="copy">© 蕭妤真　版權所有</div>
     ${fromStory && S.checkpoints.length ? '<button class="btn primary" id="rcp">回到分歧點，看看別的結局</button>' : ''}
     ${fromStory ? '<button class="btn" id="rnew">重新開始一局（重新抽籤）</button>' : '<button class="btn primary" id="rback">回到遊戲</button>'}
   </div>`);
@@ -824,6 +827,7 @@ function titleScreen(restart){
     <div class="gender"><button class="btn" id="tF">女生</button><button class="btn" id="tM">男生</button></div>
     <div class="fb bad" id="tErr"></div>
     ${endingListHtml()}
+    <div class="copy">© 蕭妤真　版權所有</div>
   </div>`.replace('{皇上}', '皇上'));
   o.onclick = e => e.stopPropagation();
   if ($('tCont')) $('tCont').onclick = () => { closeOv(); preloadArt(S.ver); setBg(S.bg || 'gate'); renderChars(null); updateTop(); resumeView(); };
@@ -840,7 +844,7 @@ function titleScreen(restart){
   $('tF').onclick = () => start('gong');
   $('tM').onclick = () => start('zhao');
 }
-$('ver').textContent = VERSION + (DEV ? '・測試模式' : '');
+$('ver').textContent = '© 蕭妤真　' + VERSION + (DEV ? '・測試模式' : '');
 titleScreen();
 </script>
 </body>
